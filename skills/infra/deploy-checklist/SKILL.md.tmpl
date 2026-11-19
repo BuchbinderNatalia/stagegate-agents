@@ -1,0 +1,63 @@
+---
+name: deploy-checklist
+description: Pre-deploy, during-deploy, smoke-test and rollback runbook for {{ project.name }}'s pipeline deploys. Use when the user asks to deploy, check a deployment, or roll back, or runs /deploy-checklist.
+---
+<!-- SPDX-License-Identifier: Apache-2.0 — stagegate-agents -->
+
+# deploy-checklist
+
+Mark each item ✅ done / ❌ blocked / ⏭ n/a. Deploys happen through the pipeline after a merge to
+`{{ project.default_branch }}`. Nobody applies infrastructure or manifests by hand.
+
+## Reference values
+| Key | Value |
+|---|---|
+| Cloud / region | {{ infra.cloud }} / `{{ infra.region }}` |
+| Cluster | `{{#if infra.cluster}}{{ infra.cluster }}{{else}}<CLUSTER>{{/if}}` |
+| Image repository | `{{#if infra.registry}}{{ infra.registry }}{{else}}<REGISTRY>/<IMAGE>{{/if}}` |
+| App / namespace | `{{ infra.app_name }}` / `{{ infra.namespace }}` |
+| Health endpoint | `{{ infra.health_path }}` (port {{ infra.app_port }}) |
+| Deploy environment | GitHub environment `{{ infra.environment }}` |
+
+Keep real account IDs, domains and contact emails **out of this file**: it lives in git.
+
+## Pre-deploy
+- [ ] All CI checks green on the PR; the merge gate allowed the merge
+- [ ] Image tagged with the git SHA, never `:latest`
+- [ ] Terraform plan reviewed: no unexpected destroys
+- [ ] Manifest changes reviewed (`kubectl diff` output in the PR, if any)
+- [ ] New secrets created where the app reads them{{#if infra.vault}} (Vault){{/if}} **before** the deploy
+- [ ] New settings have safe defaults, so the app starts without them
+- [ ] A reviewer approved the `{{ infra.environment }}` environment deployment in GitHub Actions
+
+## During deploy (watch it, don't walk away)
+- [ ] Terraform stage: only expected changes
+- [ ] Platform stage: every release upgrades cleanly
+- [ ] Build: image scan passes (no CRITICAL/HIGH)
+- [ ] Deploy: {{#if infra.argocd}}ArgoCD reports the app Synced and Healthy{{else}}rollout completes{{/if}}
+
+If the rollout fails, read the previous container's logs first:
+```bash
+kubectl logs -n {{ infra.namespace }} deployment/{{ infra.app_name }} --previous
+```
+
+## Smoke tests (after the pipeline finishes)
+- [ ] `curl -fsS https://<APP_HOST>{{ infra.health_path }}` returns healthy
+- [ ] Sign-in works end to end with a test account
+- [ ] The main user journey works; degraded modes (e.g. a missing optional API key) are expected, broken pages are not
+- [ ] Error rate and latency dashboards look normal for 15 minutes
+
+## Rollback
+**Option A: roll back the workload (fastest)**
+```bash
+{{#if infra.argocd}}# ArgoCD would re-sync the bad tag: revert the tag commit in git instead (option B),
+# or pause auto-sync first if you must act on the cluster.
+{{/if}}kubectl rollout undo deployment/{{ infra.app_name }} -n {{ infra.namespace }}
+kubectl rollout status deployment/{{ infra.app_name }} -n {{ infra.namespace }}
+```
+**Option B: revert in git (the pipeline redeploys the previous version)**
+```bash
+git switch -c fix/revert-<slug> && git revert <bad-merge-commit> && git push -u origin HEAD
+gh pr create --fill   # merges like any PR: green checks, then the pipeline redeploys
+```
+Afterwards: write down what was deployed, what failed and how it was rolled back (issue or incident note).

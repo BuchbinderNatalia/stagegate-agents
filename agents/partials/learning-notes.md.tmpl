@@ -1,0 +1,14 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+{{#if infra.learning_notes}}
+## Learning notes (mentor mode)
+End every output with a `## Learning notes` section:
+1. **What this change does and why**: the concept, not just the action. Assume the reader knows
+   the words but hasn't done this in production.
+2. **Where it fits**: what depends on this piece and what it depends on.
+3. **Three ways this specific change could fail**, each with how to diagnose it (exact command or
+   signal, not "networking issues").
+4. **One thing a senior engineer checks here that is easy to miss.**
+5. **Docs to read**: current official links for the resources touched.
+
+Tone: direct and collegial, like a senior engineer walking a respected colleague through it.
+{{/if}}

@@ -10,6 +10,7 @@ Template syntax (deliberately tiny, strict):
   {{ sandbox.deny_read | bullets }} one "- item" line per list entry
   {{#if stack.frontend_dir}} ... {{else}} ... {{/if}}   truthiness; nestable
   {{#unless infra.enabled}} ... {{/unless}}
+  {{> infra-rules }}              include agents/partials/infra-rules.md.tmpl
 An unknown key, an unknown filter, an unclosed block or any leftover "{{"
 is an error: a half-rendered agent prompt must never be installed.
 GitHub Actions expressions (`${{ github.sha }}`) pass through untouched.
@@ -33,6 +34,7 @@ import config  # noqa: E402
 # `${{ ... }}` (GitHub Actions expressions) is literal text, never a template tag.
 TAG = re.compile(r"(?<!\$)\{\{\s*(.*?)\s*\}\}", re.DOTALL)
 GHA_EXPR = re.compile(r"\$\{\{.*?\}\}", re.DOTALL)
+SPDX_COMMENT = re.compile(r"^<!-- SPDX-License-Identifier: [^>]* -->\n?", re.MULTILINE)
 HOOK_DIR = ".claude/hooks/stagegate"
 HOOKS = ("commit-guard.sh", "merge-gate.sh", "load-test-guard.sh")
 MANIFEST = ".claude/stagegate.manifest.json"
@@ -69,8 +71,17 @@ def _fmt(value: Any, filt: str | None, expr: str) -> str:
     raise TemplateError(f"unknown filter '{filt}' in {{{{ {expr} }}}}")
 
 
-def render(text: str, ctx: dict[str, Any], name: str = "<template>") -> str:
-    """Render `text`; raise TemplateError with the template name on any problem."""
+def render(
+    text: str,
+    ctx: dict[str, Any],
+    name: str = "<template>",
+    partials: dict[str, str] | None = None,
+    _depth: int = 0,
+) -> str:
+    """Render `text`; raise TemplateError with the template name on any problem.
+
+    `{{> name }}` inserts partials[name], rendered with the same context.
+    """
     out: list[str] = []
     # Stack of (block kind, condition, in_else). Text is emitted only when every
     # enclosing block is active.
@@ -95,6 +106,16 @@ def render(text: str, ctx: dict[str, Any], name: str = "<template>") -> str:
                     raise TemplateError("{{else}} without an open {{#if}}")
                 kind, cond, _ = stack.pop()
                 stack.append((kind, cond, True))
+            elif expr.startswith(">"):
+                pname = expr[1:].strip()
+                if partials is None or pname not in partials:
+                    raise TemplateError(f"unknown partial: {pname}")
+                if _depth >= 3:
+                    raise TemplateError(f"partials nested too deep at {pname}")
+                if active():
+                    out.append(
+                        render(partials[pname], ctx, f"partial {pname}", partials, _depth + 1)
+                    )
             elif expr in ("/if", "/unless"):
                 if not stack or stack[-1][0] != expr[1:]:
                     raise TemplateError(f"unexpected {{{{{expr}}}}}")
@@ -130,12 +151,29 @@ def context(cfg: dict[str, Any], target: Path) -> dict[str, Any]:
         "lint": prefix + stack["lint_command"],
     }
     ctx["git"]["per_file"] = ctx["git"]["commit_style"] == "per-file"
+    infra = ctx["infra"]
+    infra["app_name"] = infra["app_name"] or ctx["project"]["name"]
+    infra["namespace"] = infra["namespace"] or ctx["project"]["name"]
+    infra["argocd"] = infra["gitops"] == "argocd"
+    infra["vault"] = infra["secrets"] == "vault"
     return ctx
 
 
 # --------------------------------------------------------------------------- file set
 # Agents installed only when a config value is truthy.
-AGENT_REQUIRES = {"frontend-builder": "stack.frontend_dir"}
+AGENT_REQUIRES = {
+    "frontend-builder": "stack.frontend_dir",
+    "argocd-config-writer": "infra.argocd",
+    "argocd-validator": "infra.argocd",
+    "gitops-pipeline-builder": "infra.argocd",
+}
+# Extra files per pack: template -> installed path. Never named like a file users
+# commonly have, so an install can't collide with an existing pipeline.
+PACK_FILES = {
+    "infra": {
+        "templates/workflows/deploy-3stage.yml.tmpl": ".github/workflows/stagegate-deploy.yml"
+    },
+}
 FRONTEND_PROFILE = "react-ts"
 
 
@@ -157,6 +195,10 @@ def collect(
 ) -> dict[str, str]:
     """Render every file stagegate installs into `target`: {relative path: content}."""
     ctx = context(cfg, target)
+    partials = {
+        p.name.removesuffix(".md.tmpl"): SPDX_COMMENT.sub("", p.read_text(encoding="utf-8"))
+        for p in (ROOT / "agents" / "partials").glob("*.md.tmpl")
+    }
     files: dict[str, str] = {}
     for pack in packs:
         for tmpl in sorted((ROOT / "agents" / pack).glob("*.md.tmpl")):
@@ -165,10 +207,16 @@ def collect(
             if requirement and not lookup(ctx, requirement):
                 continue
             rel = f".claude/agents/{name}.md"
-            files[rel] = render(tmpl.read_text(encoding="utf-8"), ctx, str(tmpl.relative_to(ROOT)))
+            files[rel] = render(
+                tmpl.read_text(encoding="utf-8"), ctx, str(tmpl.relative_to(ROOT)), partials
+            )
         for tmpl in sorted((ROOT / "skills" / pack).glob("*/SKILL.md.tmpl")):
             rel = f".claude/skills/{tmpl.parent.name}/SKILL.md"
-            files[rel] = render(tmpl.read_text(encoding="utf-8"), ctx, str(tmpl.relative_to(ROOT)))
+            files[rel] = render(
+                tmpl.read_text(encoding="utf-8"), ctx, str(tmpl.relative_to(ROOT)), partials
+            )
+        for src, dest in PACK_FILES.get(pack, {}).items():
+            files[dest] = render((ROOT / src).read_text(encoding="utf-8"), ctx, src, partials)
     files[".claude/stagegate/stack.md"] = stack_profile(cfg)
     return files
 
@@ -221,7 +269,6 @@ def remove_from_settings(existing: dict[str, Any]) -> dict[str, Any]:
 
 
 # --------------------------------------------------------------------------- CLAUDE.md
-SPDX_COMMENT = re.compile(r"^<!-- SPDX-License-Identifier: [^>]* -->\n?", re.MULTILINE)
 
 
 def merge_claude_md(existing: str | None, section: str) -> str:

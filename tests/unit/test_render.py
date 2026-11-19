@@ -67,6 +67,16 @@ def test_render_errors(text: str, message: str) -> None:
         render.render(text, CTX, "t.md")
 
 
+def test_partials() -> None:
+    parts = {"greet": "hi {{ a.name }}{{#if a.on}}!{{/if}}", "loop": "{{> loop }}"}
+    assert render.render("[{{> greet }}]", CTX, partials=parts) == "[hi app!]"
+    assert render.render("{{#if a.off}}{{> greet }}{{/if}}x", CTX, partials=parts) == "x"
+    with pytest.raises(render.TemplateError, match="unknown partial: nope"):
+        render.render("{{> nope }}", CTX, partials=parts)
+    with pytest.raises(render.TemplateError, match="nested too deep"):
+        render.render("{{> loop }}", CTX, partials=parts)
+
+
 def test_error_names_the_template() -> None:
     with pytest.raises(render.TemplateError, match="agents/x.md.tmpl"):
         render.render("{{ nope }}", CTX, "agents/x.md.tmpl")

@@ -76,6 +76,15 @@ DEFAULTS: dict[str, Any] = {
         "secrets": "vault",
         "tf_state_bucket": "",
         "tf_lock_table": "",
+        "app_name": "",  # Kubernetes deployment / ArgoCD app name; defaults to project.name
+        "namespace": "",  # app namespace; defaults to project.name
+        "health_path": "/health",
+        "app_port": "8000",
+        "environment": "production",  # GitHub environment that gates deploys (required reviewers)
+        # Name of the GitHub Actions secret holding the IAM role ARN CI assumes via OIDC.
+        "deploy_role_secret": "AWS_DEPLOY_ROLE_ARN",
+        # Mentor mode: infra agents end with "Learning notes" (why, risks, what seniors check).
+        "learning_notes": False,
     },
     "guards": {
         # Load tests may only target these hosts. Dotless names (docker-compose
