@@ -1,0 +1,45 @@
+# SPDX-License-Identifier: Apache-2.0
+# Install: pip install --group dev && pre-commit install
+# Revs are pinned; bump with `pre-commit autoupdate` in a reviewed PR.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: check-yaml
+      - id: check-toml
+      - id: check-added-large-files
+      - id: check-executables-have-shebangs
+      - id: detect-private-key
+      - id: check-merge-conflict
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.6
+    hooks:
+      - id: ruff-check
+      - id: ruff-format
+
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.11.0.1
+    hooks:
+      - id: shellcheck
+
+  - repo: local
+    hooks:
+      - id: spdx-headers
+        name: SPDX license headers
+        entry: python3 scripts/check_spdx.py
+        language: system
+        types_or: [python, shell, yaml]
+      - id: leak-check
+        name: leak check (generic rules + local .leak-denylist)
+        entry: python3 scripts/leak_check.py
+        language: system
+        pass_filenames: false

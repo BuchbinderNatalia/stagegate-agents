@@ -1,0 +1,43 @@
+# SPDX-License-Identifier: Apache-2.0
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+
+# Secrets and credentials (never commit)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.tfstate
+*.tfstate.backup
+*.tfvars
+!*.tfvars.example
+.netrc
+
+# Private leak-check denylist (real identifiers to keep out of this repo)
+.leak-denylist
+
+# Local run output (eval runs, reports may contain tokens)
+evals/runs/
+reports/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Claude Code local-only settings
+.claude/settings.local.json

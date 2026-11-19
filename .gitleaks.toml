@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: Apache-2.0
+# gitleaks configuration for stagegate-agents.
+#
+# Extends the full upstream ruleset. Allowlists are per-path and narrow; never
+# add a global regex allowlist. Test fixtures must use obviously fake values
+# (e.g. "FAKE-not-a-real-token") rather than realistic-looking keys.
+title = "stagegate-agents gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+  description = "Fixtures that intentionally contain fake secrets to test the guards"
+  paths = [
+    '''tests/fixtures/fake-secrets/.*''',
+  ]

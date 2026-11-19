@@ -1,0 +1,56 @@
+# SPDX-License-Identifier: Apache-2.0
+[project]
+name = "stagegate-agents"
+version = "0.1.0"
+description = "A staged, human-gated delivery pipeline for Claude Code: 19 agents, guard hooks, and CI gates enforced by code."
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+authors = [{ name = "Natalia Buchbinder" }]
+requires-python = ">=3.11"
+# Zero runtime dependencies: hooks, installer and renderer use only the
+# standard library (config is TOML, read with tomllib).
+dependencies = []
+keywords = ["ai-agents", "claude-code", "devops", "automation", "multi-agent"]
+classifiers = [
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3",
+  "Topic :: Software Development :: Build Tools",
+]
+
+[project.urls]
+Homepage = "https://github.com/BuchbinderNatalia/stagegate-agents"
+Issues = "https://github.com/BuchbinderNatalia/stagegate-agents/issues"
+
+# Dev tools (PEP 735) for working on this repo; never installed into user projects.
+#   Quick:        pip install --group dev
+#   Reproducible: pip install --require-hashes -r requirements-dev.lock  (what CI uses)
+# Keep in sync with requirements-dev.in (tests/unit/test_dev_lock.py enforces it);
+# regenerate the lock with scripts/lock-dev.sh.
+[dependency-groups]
+dev = [
+  "pip-tools>=7.4",
+  "pre-commit>=3.7",
+  "pytest>=8.0",
+  "pyyaml>=6.0",  # tests only: lint agent frontmatter and workflow files
+  "ruff>=0.6",
+  "shellcheck-py>=0.10",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+markers = [
+  "live: runs real Claude Code locally (opt-in via STAGEGATE_LIVE=1, never in CI)",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S"]
+ignore = ["S101", "S603", "S607"]  # asserts in tests; subprocess calls are intentional and use argv lists
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S"]

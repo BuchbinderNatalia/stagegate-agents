@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: Apache-2.0
+# Source for requirements-dev.lock. Must match [dependency-groups].dev in pyproject.toml.
+pip-tools>=7.4
+pre-commit>=3.7
+pytest>=8.0
+pyyaml>=6.0
+ruff>=0.6
+shellcheck-py>=0.10

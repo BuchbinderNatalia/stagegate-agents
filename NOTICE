@@ -1,0 +1,16 @@
+stagegate-agents
+Copyright 2026 Natalia Buchbinder
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Attribution requirement (Apache-2.0, Section 4(d)):
+If you redistribute this work or a derivative work, in source or object form,
+you must include a readable copy of this NOTICE file, and keep the following
+attribution in your documentation or in a NOTICE file of your own:
+
+    Based on stagegate-agents by Natalia Buchbinder
+    https://github.com/BuchbinderNatalia/stagegate-agents
+
+Agents, skills, hooks and workflows in this repository originate from a
+multi-agent delivery pipeline built and run in production by the author.
+No proprietary application code is included.
