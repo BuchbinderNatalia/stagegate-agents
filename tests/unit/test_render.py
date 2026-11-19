@@ -197,6 +197,12 @@ def test_settings_sandbox_opt_out() -> None:
     assert s["sandbox"] == {"enabled": False}
 
 
+def test_remove_from_settings_leaves_no_empty_sections() -> None:
+    installed = render.merge_settings({"model": "sonnet"}, config.DEFAULTS)
+    removed = render.remove_from_settings(installed)
+    assert "hooks" not in removed and removed["model"] == "sonnet"
+
+
 def test_remove_from_settings_only_removes_ours() -> None:
     user = {"hooks": {"PreToolUse": [{"matcher": "Bash", "hooks": [{"command": "mine.sh"}]}]}}
     installed = render.merge_settings(user, config.DEFAULTS)

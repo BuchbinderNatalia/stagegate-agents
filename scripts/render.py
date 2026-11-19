@@ -264,7 +264,13 @@ def remove_from_settings(existing: dict[str, Any]) -> dict[str, Any]:
         group["hooks"] = [h for h in group.get("hooks", []) if h.get("command") not in ours]
     pre = settings.get("hooks", {}).get("PreToolUse")
     if pre is not None:
-        settings["hooks"]["PreToolUse"] = [g for g in pre if g.get("hooks")]
+        pre = [g for g in pre if g.get("hooks")]
+        if pre:
+            settings["hooks"]["PreToolUse"] = pre
+        else:
+            del settings["hooks"]["PreToolUse"]
+            if not settings["hooks"]:
+                del settings["hooks"]
     return settings
 
 
