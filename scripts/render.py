@@ -119,10 +119,58 @@ def render(text: str, ctx: dict[str, Any], name: str = "<template>") -> str:
 
 
 def context(cfg: dict[str, Any], target: Path) -> dict[str, Any]:
+    """Config plus a few derived values templates need (they can't compare strings)."""
     ctx = copy.deepcopy(cfg)
     if not ctx["project"]["name"]:
         ctx["project"]["name"] = target.resolve().name
+    stack = ctx["stack"]
+    prefix = f"{stack['run_prefix']} " if stack["run_prefix"] else ""
+    ctx["cmd"] = {
+        "test": prefix + stack["test_command"],
+        "lint": prefix + stack["lint_command"],
+    }
+    ctx["git"]["per_file"] = ctx["git"]["commit_style"] == "per-file"
     return ctx
+
+
+# --------------------------------------------------------------------------- file set
+# Agents installed only when a config value is truthy.
+AGENT_REQUIRES = {"frontend-builder": "stack.frontend_dir"}
+FRONTEND_PROFILE = "react-ts"
+
+
+def stack_profile(cfg: dict[str, Any]) -> str:
+    """The stack guidance installed as .claude/stagegate/stack.md."""
+    profile = cfg["stack"]["profile"]
+    path = ROOT / "stacks" / f"{profile}.md"
+    if not path.is_file():
+        known = ", ".join(sorted(p.stem for p in (ROOT / "stacks").glob("*.md")))
+        raise TemplateError(f"unknown stack.profile '{profile}' (known: {known})")
+    parts = [path.read_text(encoding="utf-8")]
+    if cfg["stack"]["frontend_dir"] and profile != FRONTEND_PROFILE:
+        parts.append((ROOT / "stacks" / f"{FRONTEND_PROFILE}.md").read_text(encoding="utf-8"))
+    return "\n\n".join(p.strip() for p in parts) + "\n"
+
+
+def collect(
+    cfg: dict[str, Any], target: Path, packs: tuple[str, ...] = ("core",)
+) -> dict[str, str]:
+    """Render every file stagegate installs into `target`: {relative path: content}."""
+    ctx = context(cfg, target)
+    files: dict[str, str] = {}
+    for pack in packs:
+        for tmpl in sorted((ROOT / "agents" / pack).glob("*.md.tmpl")):
+            name = tmpl.name.removesuffix(".md.tmpl")
+            requirement = AGENT_REQUIRES.get(name)
+            if requirement and not lookup(ctx, requirement):
+                continue
+            rel = f".claude/agents/{name}.md"
+            files[rel] = render(tmpl.read_text(encoding="utf-8"), ctx, str(tmpl.relative_to(ROOT)))
+        for tmpl in sorted((ROOT / "skills" / pack).glob("*/SKILL.md.tmpl")):
+            rel = f".claude/skills/{tmpl.parent.name}/SKILL.md"
+            files[rel] = render(tmpl.read_text(encoding="utf-8"), ctx, str(tmpl.relative_to(ROOT)))
+    files[".claude/stagegate/stack.md"] = stack_profile(cfg)
+    return files
 
 
 # --------------------------------------------------------------------------- settings.json

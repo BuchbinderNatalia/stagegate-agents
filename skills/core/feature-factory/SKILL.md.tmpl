@@ -1,0 +1,79 @@
+---
+name: feature-factory
+description: Orchestrates a full {{ project.name }} feature build across the stagegate agents — research, story, brief, test plan, build, tests, validation loop, review — with three human approval gates. Use when the user asks to build or ship a feature, or runs /feature-factory <idea>.
+---
+<!-- SPDX-License-Identifier: Apache-2.0 — stagegate-agents -->
+
+# feature-factory
+
+Usage: `/feature-factory <feature idea>`, e.g. `/feature-factory export the report as CSV`.
+
+The human makes three decisions; agents do everything else:
+1. Does the story match what I want? 2. Is the brief right? 3. Is it ready for a PR?
+
+## Chain
+
+### STEP 0 — Feature branch
+```bash
+git switch -c {{ git.branch_prefix }}<slug>
+```
+Slug from the idea (e.g. `{{ git.branch_prefix }}csv-export`). Confirm with `git branch --show-current`.
+All agents commit to this branch only, never to `{{ project.default_branch }}`.
+
+### STEP 1 — codebase-researcher
+Input: the idea and the area most likely affected. Stop if it can't find the relevant code.
+
+### STEP 2 — story-writer
+Input: the idea + researcher findings.
+
+### STEP 3 — ⛔ HUMAN APPROVAL: story
+Show the full story and acceptance criteria. Ask exactly:
+> "Does this user story match what you want? Reply **'approved'**, describe changes, or **'reject'**."
+- approved → step 4 · changes → re-run story-writer with the feedback, repeat step 3 · reject → stop and summarise.
+
+### STEP 4 — spec-writer
+Input: approved story + researcher findings.
+
+### STEP 5 — ⛔ HUMAN APPROVAL: brief
+Show the full brief. Ask exactly:
+> "Any design concerns or missing rules? Reply **'approved'**, describe changes, or **'reject'**."
+
+### STEP 5b — test-strategist
+Input: approved story + brief. Show the human the **Tooling gaps** section: any new test dependency
+needs their explicit approval before step 8b.
+
+### STEP 6 — backend-builder *(skip if the brief has no backend changes)*
+Input: brief + researcher findings. It commits on the feature branch as it goes.
+{{#if stack.frontend_dir}}
+### STEP 7 — frontend-builder *(skip if the brief has no frontend changes)*
+Input: brief + researcher findings + backend-builder summary.
+{{/if}}
+### STEP 8 — test-verifier
+Input: story + brief + builder summaries + the plan's unit/integration rows.
+
+### STEP 8b — e2e-test-writer *(skip if the plan has no {{#if stack.frontend_dir}}frontend/E2E/{{/if}}load rows)*
+Input: story + the plan's remaining rows + the human's tooling decision. Load tests target local
+hosts only (enforced by the load-test guard).
+
+### STEP 9 — implementation-validator
+Input: story + brief + all summaries and reports.
+
+### STEP 10 — Fix loop (until zero Critical)
+Route each Critical finding to the agent that owns the file, then re-run the test agents and the
+validator. Never continue to step 11 with a Critical finding open.
+
+### STEP 11 — ⛔ HUMAN APPROVAL: ready for PR
+Show: validator summary, every changed file, Important/Minor findings. Ask the human to run the app
+and the tests locally (`{{ cmd.test }}`), then ask exactly:
+> "Local check done? Ready to open the PR? Reply **'yes'**, or describe what to fix."
+- yes → push the branch, open a PR (`gh pr create`), run **pr-reviewer** on it, print its verdict.
+- fix → route to the right builder, re-run the validator, return to step 11.
+
+The PR merges only when every CI check is green (the merge gate blocks `gh pr merge` otherwise)
+and the human decides to merge.
+
+## Chain rules
+- Never skip gates 3, 5 or 11. "Approved" must come from the human in this conversation.
+- Pass each agent only the inputs it needs.
+- If an agent can't finish, stop and explain before asking how to proceed.
+- If a guard hook blocks a step, fix the cause. Never bypass or edit a guard.
