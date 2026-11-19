@@ -32,7 +32,12 @@ DEFAULTS: dict[str, Any] = {
         # Prefix for running commands in a container, e.g. "docker compose run --rm app"
         "run_prefix": "",
     },
-    "git": {"branch_prefix": "feat/", "commit_style": "per-step"},
+    "git": {
+        "branch_prefix": "feat/",
+        "commit_style": "per-step",
+        # Commit guard blocks commits on, and pushes to, the default branch.
+        "protect_default_branch": True,
+    },
     "review": {"require_green_ci": True},
     # Model aliases track the current model versions; a full model ID pins one.
     "models": {"fast": "haiku", "default": "sonnet"},

@@ -25,6 +25,7 @@ run_prefix = ""              # e.g. "docker compose run --rm app" to run command
 [git]
 branch_prefix = "feat/"
 commit_style = "per-step"    # per-step | per-file
+protect_default_branch = true  # block commits on / pushes to the default branch (use PRs)
 
 [review]
 require_green_ci = true      # merge gate: block `gh pr merge` unless all CI checks are green

@@ -134,7 +134,10 @@ def test_claude_md_template_renders(tmp_path: Path, overrides: dict) -> None:
     if overrides.get("sandbox", {}).get("enabled") is False:
         assert "Sandbox is OFF" in out
     if overrides == {}:
-        assert "secrets and state files, `:latest` image tags." in out
+        assert (
+            "secrets and state files, `:latest` image tags, "
+            "and any commit on or push to `main`." in out
+        )
     if overrides.get("guards"):
         assert "configured forbidden patterns" in out
     if overrides.get("stack", {}).get("run_prefix"):

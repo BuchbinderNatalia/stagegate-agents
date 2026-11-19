@@ -47,6 +47,8 @@ markers = [
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+# Python scripts without a .py extension (fake CLIs used by the tests).
+extend-include = ["tests/fixtures/fake-bin/*"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "S"]

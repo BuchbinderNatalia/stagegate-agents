@@ -22,6 +22,8 @@ def project(tmp_path: Path) -> Path:
     subprocess.run(["git", "init", "-q", "-b", "main"], cwd=tmp_path, check=True)
     subprocess.run(["git", "config", "user.email", "t@example.com"], cwd=tmp_path, check=True)
     subprocess.run(["git", "config", "user.name", "t"], cwd=tmp_path, check=True)
+    # Agents work on feature branches; the default branch is protected by the commit guard.
+    subprocess.run(["git", "checkout", "-q", "-b", "feat/test"], cwd=tmp_path, check=True)
     return tmp_path
 
 
