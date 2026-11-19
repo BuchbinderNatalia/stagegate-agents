@@ -19,8 +19,64 @@ from typing import Any
 CONFIG_NAME = "stagegate.toml"
 
 DEFAULTS: dict[str, Any] = {
-    "project": {"name": "", "default_branch": "main"},
+    "project": {"name": "", "description": "", "default_branch": "main"},
+    "stack": {
+        "language": "python",
+        # Agent guidance profile: stacks/<profile>.md (python, python-fastapi, react-ts, ...)
+        "profile": "python",
+        "backend_dir": ".",
+        "frontend_dir": "",  # empty = no frontend; frontend agents are not installed
+        "tests_dir": "tests",
+        "test_command": "pytest -q",
+        "lint_command": "ruff check .",
+        # Prefix for running commands in a container, e.g. "docker compose run --rm app"
+        "run_prefix": "",
+    },
+    "git": {"branch_prefix": "feat/", "commit_style": "per-step"},
     "review": {"require_green_ci": True},
+    # Model aliases track the current model versions; a full model ID pins one.
+    "models": {"fast": "haiku", "default": "sonnet"},
+    "sandbox": {
+        "enabled": True,
+        # true = Claude Code refuses to run if the sandbox can't start (evals force this).
+        "fail_if_unavailable": False,
+        "allowed_domains": [
+            "github.com",
+            "api.github.com",
+            "codeload.github.com",
+            "objects.githubusercontent.com",
+            "pypi.org",
+            "files.pythonhosted.org",
+        ],
+        "deny_read": [
+            "~/.aws",
+            "~/.ssh",
+            "~/.kube",
+            "~/.config/gh",
+            "~/.config/gcloud",
+            "~/.azure",
+            "~/.docker/config.json",
+            "~/.netrc",
+            "~/.npmrc",
+            "~/.pypirc",
+        ],
+        # Run outside the sandbox (still with permission prompts): they need your
+        # git/GitHub credentials. `gh pr merge` stays behind the merge gate.
+        "excluded_commands": ["git fetch *", "git pull *", "git push *", "gh pr *"],
+    },
+    "infra": {
+        "enabled": False,
+        "cloud": "aws",
+        "region": "us-east-1",
+        "cluster": "",
+        "registry": "",
+        "iac_dir": "terraform",
+        "k8s_dir": "k8s",
+        "gitops": "argocd",
+        "secrets": "vault",
+        "tf_state_bucket": "",
+        "tf_lock_table": "",
+    },
     "guards": {
         # Load tests may only target these hosts. Dotless names (docker-compose
         # services such as "backend") and private/loopback IPs are always local.
@@ -109,3 +165,31 @@ def load(root: Path | None = None) -> dict[str, Any]:
     except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError) as exc:
         raise ConfigError(f"cannot read {path}: {exc}") from exc
     return _merge(DEFAULTS, data)
+
+
+def validate(
+    cfg: dict[str, Any], defaults: dict[str, Any] | None = None, path: str = ""
+) -> list[str]:
+    """Return human-readable problems: unknown keys and values of the wrong type."""
+    defaults = DEFAULTS if defaults is None else defaults
+    problems: list[str] = []
+    for key, value in cfg.items():
+        where = f"{path}{key}"
+        if key not in defaults:
+            problems.append(f"unknown key: {where}")
+            continue
+        expected = defaults[key]
+        if isinstance(expected, dict):
+            if not isinstance(value, dict):
+                problems.append(f"{where} must be a table")
+            else:
+                problems.extend(validate(value, expected, f"{where}."))
+        elif isinstance(expected, bool):
+            if not isinstance(value, bool):
+                problems.append(f"{where} must be true or false")
+        elif isinstance(expected, list):
+            if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
+                problems.append(f"{where} must be a list of strings")
+        elif isinstance(expected, str) and not isinstance(value, str):
+            problems.append(f"{where} must be a string")
+    return problems

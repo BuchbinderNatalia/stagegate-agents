@@ -1,0 +1,40 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+## stagegate — how agents work in {{ project.name }}
+
+This section is managed by stagegate-agents (`stagegate.toml`). Edit the
+config and re-run the installer rather than editing between the markers.
+
+### Delivery chain
+`/feature-factory <idea>`: codebase-researcher → story-writer → **⛔ human approves story**
+→ spec-writer → **⛔ human approves brief** → test-strategist → builders + test-verifier
+→ implementation-validator (loop until 0 Critical) → **⛔ human approves implementation**
+→ pr-reviewer → pull request → CI → merge gate.
+{{#if infra.enabled}}`/infra-factory <change>` runs the same gates for {{ infra.iac_dir }}/, {{ infra.k8s_dir }}/ and .github/workflows/.
+{{/if}}
+Never skip a ⛔ gate. "Approved" must come from the human in this conversation.
+
+### Stack
+- Language: {{ stack.language }} (guidance: `stacks/{{ stack.profile }}.md`, installed as `.claude/stagegate/stack.md`)
+- Code: `{{ stack.backend_dir }}`{{#if stack.frontend_dir}} · frontend: `{{ stack.frontend_dir }}`{{/if}} · tests: `{{ stack.tests_dir }}`
+- Run tests: `{{#if stack.run_prefix}}{{ stack.run_prefix }} {{/if}}{{ stack.test_command }}`
+- Lint: `{{#if stack.run_prefix}}{{ stack.run_prefix }} {{/if}}{{ stack.lint_command }}`
+
+### Git
+- Work on a branch named `{{ git.branch_prefix }}<slug>`; never commit to `{{ project.default_branch }}`.
+- Commit style: {{ git.commit_style }}. Open a PR; never merge your own PR.
+- A PR merges only when every CI check is green{{#if review.require_green_ci}} (enforced by the merge gate hook){{/if}}.
+
+### Guardrails (enforced by hooks, not by this text)
+- **Commit guard** blocks commits of secrets and state files{{#if guards.block_latest_tag}}, `:latest` image tags{{/if}}{{#if guards.forbidden_patterns}}, configured forbidden patterns{{/if}}.
+- **Merge gate** blocks `gh pr merge` while any check is red, pending or missing.
+- **Load-test guard** blocks load tools aimed at anything but local hosts.
+{{#if sandbox.enabled}}- **Sandbox**: Bash runs in Claude Code's sandbox. Credential stores are unreadable and
+  network access is limited to the allowed domains. Don't try to work around it: ask the human.
+{{else}}- **Sandbox is OFF** (`sandbox.enabled = false`). Agents run with the developer's full permissions.
+{{/if}}
+If a guard blocks you, fix the cause. Never disable, bypass or edit a guard to get past it.
+
+### Tests
+- Every change ships with tests: success path, failure/auth path, not-found/edge path.
+- Tests never call real external services (LLM APIs, GitHub, cloud): mock the clients.
+- Load tests run against a local stack only, and only when the human asks.
