@@ -35,6 +35,7 @@ dev = [
   "pyyaml>=6.0",  # tests only: lint agent frontmatter and workflow files
   "ruff>=0.6",
   "shellcheck-py>=0.10",
+  "zizmor>=1.0",  # GitHub Actions security linter
 ]
 
 [tool.pytest.ini_options]

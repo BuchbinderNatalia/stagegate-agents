@@ -6,13 +6,17 @@
 # One command:    curl -fsSL https://raw.githubusercontent.com/BuchbinderNatalia/stagegate-agents/v0.1.0/scripts/install.sh \
 #                   | bash -s -- [TARGET] [--with-infra]
 #
-# Piped mode downloads the PINNED release (STAGEGATE_VERSION, never "latest")
-# into a temp dir. Set STAGEGATE_SHA256 to the release tarball's checksum (from
-# the release page) to verify it before anything runs. Python 3.11+ required.
+# Piped mode downloads the PINNED release tarball (STAGEGATE_VERSION, never
+# "latest") into a temp dir. Set STAGEGATE_SHA256 to the checksum published next to
+# it on the release page (stagegate-agents-<version>.tar.gz.sha256) to verify it
+# before anything runs; `gh attestation verify` also proves where it was built.
+# Python 3.11+ required.
 set -euo pipefail
 
 STAGEGATE_VERSION="${STAGEGATE_VERSION:-v0.1.0}"
-STAGEGATE_TARBALL_URL="${STAGEGATE_TARBALL_URL:-https://codeload.github.com/BuchbinderNatalia/stagegate-agents/tar.gz/refs/tags/${STAGEGATE_VERSION}}"
+# The release asset built by .github/workflows/release.yml, not GitHub's auto-generated
+# tag archive: those aren't guaranteed byte-stable, so a published checksum could break.
+STAGEGATE_TARBALL_URL="${STAGEGATE_TARBALL_URL:-https://github.com/BuchbinderNatalia/stagegate-agents/releases/download/${STAGEGATE_VERSION}/stagegate-agents-${STAGEGATE_VERSION}.tar.gz}"
 
 src=""
 if [ -n "${BASH_SOURCE[0]:-}" ] && [ -f "${BASH_SOURCE[0]}" ]; then

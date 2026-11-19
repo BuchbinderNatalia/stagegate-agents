@@ -28,7 +28,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: read # checkout only; jobs widen this where needed
 
 concurrency:
   group: deploy-{{ infra.environment }}
@@ -63,8 +63,8 @@ jobs:
     environment: {{ infra.environment }}
     timeout-minutes: 45
     permissions:
-      contents: read
-      id-token: write
+      contents: read # checkout
+      id-token: write # assume the AWS role via OIDC
     defaults:
       run:
         working-directory: {{ infra.iac_dir }}
@@ -93,8 +93,8 @@ jobs:
     environment: {{ infra.environment }}
     timeout-minutes: 30
     permissions:
-      contents: read
-      id-token: write
+      contents: read # checkout
+      id-token: write # assume the AWS role via OIDC
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -124,8 +124,8 @@ jobs:
     environment: {{ infra.environment }}
     timeout-minutes: 30
     permissions:
-      contents: read
-      id-token: write
+      contents: read # checkout
+      id-token: write # assume the AWS role via OIDC
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -172,12 +172,13 @@ jobs:
     environment: {{ infra.environment }}
     timeout-minutes: 10
     permissions:
-      contents: write
+      contents: write # push the image-tag commit
     outputs:
       revision: ${{ steps.commit.outputs.revision }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          # zizmor: ignore[artipacked] this job must push and uploads no artifacts
           persist-credentials: true  # this job only: pushes the tag commit
       - name: Commit the new image tag (ArgoCD deploys from git)
         id: commit
@@ -204,8 +205,8 @@ jobs:
     environment: {{ infra.environment }}
     timeout-minutes: 15
     permissions:
-      contents: read
-      id-token: write
+      contents: read # checkout
+      id-token: write # assume the AWS role via OIDC
     steps:
       - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
