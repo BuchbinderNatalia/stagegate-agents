@@ -1,0 +1,62 @@
+---
+name: infra-change-review
+description: Checklist review of a {{ project.name }} infrastructure change (Terraform, Kubernetes/Helm, CI/CD workflows, Dockerfiles) before merge, reporting pass/fail per item with file and line. Use when asked to review a terraform, k8s, helm, pipeline or Dockerfile change, or via /infra-change-review.
+---
+<!-- SPDX-License-Identifier: Apache-2.0 — stagegate-agents -->
+
+# infra-change-review
+
+Run against the branch diff:
+`git diff {{ project.default_branch }}...HEAD -- {{ infra.iac_dir }}/ {{ infra.k8s_dir }}/ .github/workflows/ '*Dockerfile*'`
+
+Work through each section that has changed files. Mark every item ✅ pass / ❌ fail / ⏭ n/a (with a reason).
+Every ❌ needs `path:line` and blocks the merge.
+
+## Terraform
+- [ ] Remote state, never local{{#if infra.tf_state_bucket}} (`{{ infra.tf_state_bucket }}`){{/if}}
+- [ ] No hardcoded account IDs or regions (data sources / variables)
+- [ ] Standard tags on every new resource
+- [ ] No wildcard IAM actions or resources in production policies
+- [ ] Existing modules reused; no duplicate resources
+- [ ] Persistent resources still have `prevent_destroy`
+- [ ] `terraform fmt -check` and `terraform validate` pass; plan reviewed for destroys
+- [ ] No state, tfvars or key files committed
+
+## Kubernetes / Helm
+- [ ] requests **and** limits, liveness **and** readiness probes on every container
+- [ ] Images pinned to digest/SHA; no `:latest`
+- [ ] No secrets in ConfigMaps or values files{{#if infra.vault}} (Vault only){{/if}}
+- [ ] Correct namespaces (app: `{{ infra.namespace }}`); never `default`
+- [ ] Non-root security context; PDB when replicas > 1
+- [ ] `helm lint` / `kubeconform` output included
+{{#if infra.argocd}}- [ ] Nothing managed by both ArgoCD and a pipeline Helm/kubectl step
+{{/if}}
+## CI/CD
+- [ ] OIDC roles: read-only `{{ infra.plan_role_variable }}` for plans, `{{ infra.deploy_role_variable }}`
+      only inside the `{{ infra.environment }}` environment; no long-lived cloud keys
+- [ ] Every action pinned to a commit SHA
+- [ ] Least-privilege `permissions:`
+- [ ] Order: tests → Terraform → platform → build → scan → deploy
+- [ ] Scan fails on CRITICAL/HIGH
+- [ ] Production behind the `{{ infra.environment }}` environment; deploy `concurrency` set
+- [ ] No untrusted `${{ github.event.* }}` text interpolated into `run:`
+- [ ] Destroy workflow: `workflow_dispatch` only, typed confirmation unchanged
+
+## Containers
+- [ ] Multi-stage build; pinned base images; non-root final stage; no secrets in ARG/ENV
+
+## General
+- [ ] One concern per change; nothing outside the declared scope
+- [ ] CLAUDE.md updated for new secrets, services or patterns
+
+## Output
+```
+## Infra change review
+### Terraform
+✅ remote state
+❌ missing standard tags on aws_security_group.app ({{ infra.iac_dir }}/modules/app/main.tf:44)
+⏭ IAM: no policy changes
+...
+### Verdict
+BLOCKED — fix ❌ items before merge.   |   APPROVED — all applicable checks pass.
+```

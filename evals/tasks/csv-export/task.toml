@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: Apache-2.0
+title = "Export the catalogue as CSV"
+max_turns = 40
+brief = """
+Add a module bookshelf/export.py with one function:
+
+    def to_csv(catalog: Catalog) -> str
+
+It returns CSV text: a header row `isbn,title,author,year`, then one row per book in
+`Catalog.all()` order. Use the standard `csv` module with "\\n" line endings, so values
+containing commas or quotes are escaped. An empty catalogue returns only the header row.
+Add tests for it.
+"""
+acceptance = [
+  "AC-1: to_csv returns a header row isbn,title,author,year followed by one row per book",
+  "AC-2: rows are in Catalog.all() order (title, then ISBN)",
+  "AC-3: an empty catalogue returns only the header row",
+  "AC-4: commas and double quotes in values are escaped per RFC 4180 (csv module)",
+]

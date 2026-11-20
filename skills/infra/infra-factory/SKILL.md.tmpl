@@ -1,0 +1,60 @@
+---
+name: infra-factory
+description: Orchestrates a {{ project.name }} infrastructure change (Terraform, Kubernetes, CI/CD{{#if infra.argocd}}, ArgoCD{{/if}}, monitoring) across the infra agents with three human approval gates and a validation loop. Use when the user asks for an infra, Terraform, Kubernetes, Helm or pipeline change, or runs /infra-factory <change>.
+---
+<!-- SPDX-License-Identifier: Apache-2.0 — stagegate-agents -->
+
+# infra-factory
+
+Usage: `/infra-factory <change>`, e.g. `/infra-factory add a PodDisruptionBudget for the app`.
+
+## Chain
+
+### STEP 0 — Feature branch
+`git switch -c {{ git.branch_prefix }}infra-<slug>`; confirm with `git branch --show-current`.
+Every agent commits here, never to `{{ project.default_branch }}`.
+
+### STEP 1 — infra-researcher
+Input: the change + the area most likely affected. Stop if it can't find the relevant files.
+
+### STEP 2 — ⛔ HUMAN APPROVAL: scope
+Show the findings. Ask exactly:
+> "Does this correctly identify the scope of the infra change? Reply **'approved'**, describe corrections, or **'reject'**."
+
+### STEP 3 — Builders (only the layers that change, in this order)
+A. **iac-builder**: Terraform in `{{ infra.iac_dir }}/`
+B. **k8s-manifest-writer**: manifests and Helm values in `{{ infra.k8s_dir }}/`
+C. **cicd-pipeline-builder**: `.github/workflows/`
+{{#if infra.argocd}}D. **argocd-config-writer**: ArgoCD Applications
+E. **gitops-pipeline-builder**: GitOps deploy stage (after D)
+{{/if}}F. **monitoring-config-writer**: alerts, dashboards, scrape and log config
+
+Give each builder only its own layer's context. Note skipped layers: _"<layer> skip: no changes."_
+
+### STEP 4 — ⛔ HUMAN APPROVAL: implementation
+Show every builder summary. Ask exactly:
+> "Do the changes look correct? Reply **'approved'** to validate, describe issues, or **'reject'**."
+
+### STEP 5 — Validators
+**infra-validator** always{{#if infra.argocd}}; **argocd-validator** too whenever ArgoCD manifests or the GitOps stage changed{{/if}}.
+
+### STEP 6 — Fix loop (until zero Critical)
+Route each Critical finding to the builder named in it; re-run the validators. Never continue with
+a Critical finding open.
+
+### STEP 7 — ⛔ HUMAN APPROVAL: ready for PR
+Show validator results and every changed file. Ask exactly:
+> "Ready to open the PR? Reply **'yes'**, or describe what to fix."
+- yes → push, `gh pr create`, run **pr-reviewer**, print its verdict.
+
+### STEP 8 — Pre-merge reminders for the human
+- After merge, read the plan in the pipeline's plan job before approving the apply; look for
+  unexpected **destroys** or replacements (the apply refuses to run if the plan changed).
+- Create any new secrets the summaries list (GitHub Actions secrets{{#if infra.vault}}, Vault paths{{/if}}) before merging.
+- Merging deploys: the pipeline applies changes, nobody applies by hand.
+- The merge gate blocks `gh pr merge` until every check is green.
+
+## Chain rules
+- Never skip the researcher, the validators or gates 2, 4 and 7.
+- No agent applies infrastructure or touches a live cluster (see each agent's safety rules).
+- If an agent can't finish, stop and explain before asking how to proceed.

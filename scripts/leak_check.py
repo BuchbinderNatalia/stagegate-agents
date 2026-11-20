@@ -31,6 +31,11 @@ from pathlib import Path
 
 # Built by concatenation so this file does not flag itself.
 FORBIDDEN_WORDS = ["base" + "44", "star" + "pulse"]
+# The project the factory was extracted from may be NAMED where its story is told
+# (case study, README, changelog, release notes), never in agents, hooks or templates.
+WORD_ALLOWED_IN = {
+    "star" + "pulse": ("README.md", "CHANGELOG.md", "docs/CASE_STUDY.md", "docs/release-notes/"),
+}
 
 ACCOUNT_ID = re.compile(r"(?<![\w.-])\d{12}(?![\w.-])")
 EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
@@ -70,11 +75,17 @@ def git_files(root: Path) -> list[Path]:
     return [root / p for p in out.split("\0") if p]
 
 
-def scan_text(text: str, denylist: list[str]) -> Iterable[tuple[int, str]]:
+def word_allowed(word: str, rel: str) -> bool:
+    return any(
+        rel == p or (p.endswith("/") and rel.startswith(p)) for p in WORD_ALLOWED_IN.get(word, ())
+    )
+
+
+def scan_text(text: str, denylist: list[str], rel: str = "") -> Iterable[tuple[int, str]]:
     for lineno, line in enumerate(text.splitlines(), 1):
         low = line.lower()
         for word in FORBIDDEN_WORDS:
-            if word in low:
+            if word in low and not word_allowed(word, rel):
                 yield lineno, f"forbidden word ({word[:4]}…)"
         if ACCOUNT_ID.search(line):
             yield lineno, "12-digit number (looks like an AWS account ID)"
@@ -113,7 +124,7 @@ def main(argv: list[str] | None = None) -> int:
         except UnicodeDecodeError:
             continue
         rel = path.relative_to(root) if path.is_absolute() and root in path.parents else path
-        for lineno, rule in scan_text(text, denylist):
+        for lineno, rule in scan_text(text, denylist, rel.as_posix()):
             print(f"{rel}:{lineno}: {rule}")
             findings += 1
 

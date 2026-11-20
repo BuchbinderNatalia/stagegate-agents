@@ -1,0 +1,163 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
+"""Fake `claude` CLI for offline tests: replays a recorded agent transcript.
+
+No model, no network. It reproduces the parts of Claude Code that stagegate
+relies on, so tests exercise the real installed files:
+  - Bash steps run through every PreToolUse hook registered for "Bash" in
+    .claude/settings.json, with the same JSON on stdin and the same exit-code
+    contract: 2 = blocked (stderr is the reason), 0 = allowed, anything else
+    = non-blocking error (the command still runs).
+  - Each step's tool must be in the acting agent's `tools:` frontmatter in
+    .claude/agents/<agent>.md, otherwise the call is denied.
+
+Usage:   claude -p <prompt> [--agent NAME] [--output-format json] [other flags ignored]
+Env:     FAKE_CLAUDE_TRANSCRIPT  path to a JSON transcript (required)
+         FAKE_CLAUDE_LOG         append one JSON line per step (optional)
+Transcript: {"agent": "<default agent>", "result": "<final answer text>", "steps": [
+  {"tool": "Bash", "command": "...", "expect": "allowed|blocked|denied", "agent": "..."},
+  {"tool": "Write", "path": "rel/path", "content": "...", "expect": "..."}]}
+A step whose outcome differs from "expect" makes the run an error (is_error).
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+
+def agent_tools(project: Path, agent: str) -> set[str]:
+    path = project / ".claude" / "agents" / f"{agent}.md"
+    if not path.exists():
+        return set()
+    head = path.read_text().split("---\n", 2)[1]
+    tools, inside = set(), False
+    for line in head.splitlines():
+        if line.startswith("tools:"):
+            inside = True
+            continue
+        if inside and line.startswith("  - "):
+            tools.add(line[4:].strip())
+        elif inside and line.strip():
+            break
+    return tools
+
+
+def bash_hooks(project: Path) -> list[str]:
+    try:
+        settings = json.loads((project / ".claude" / "settings.json").read_text())
+    except (OSError, json.JSONDecodeError):
+        return []
+    out = []
+    for group in settings.get("hooks", {}).get("PreToolUse", []):
+        if group.get("matcher") in ("Bash", "*", None):
+            out += [
+                h["command"]
+                for h in group.get("hooks", [])
+                if h.get("type", "command") == "command"
+            ]
+    return out
+
+
+def run_hooks(project: Path, command: str) -> tuple[str, str]:
+    payload = json.dumps(
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": command},
+            "cwd": str(project),
+            "hook_event_name": "PreToolUse",
+        }
+    )
+    env = dict(os.environ, CLAUDE_PROJECT_DIR=str(project))
+    for hook in bash_hooks(project):
+        p = subprocess.run(
+            ["bash", "-c", hook],
+            input=payload,
+            text=True,
+            capture_output=True,
+            cwd=project,
+            env=env,
+            timeout=120,
+        )
+        if p.returncode == 2:
+            return "blocked", p.stderr.strip()
+    return "allowed", ""
+
+
+def main() -> int:
+    args = sys.argv[1:]
+    if "--version" in args:
+        print("0.0.0 (fake claude for stagegate tests)")
+        return 0
+    project = Path.cwd()
+    transcript = json.loads(Path(os.environ["FAKE_CLAUDE_TRANSCRIPT"]).read_text())
+    log_path = os.environ.get("FAKE_CLAUDE_LOG")
+    # `--agent NAME` runs the whole session as that agent (its tools apply), like the real CLI.
+    cli_agent = args[args.index("--agent") + 1] if "--agent" in args[:-1] else None
+    default_agent = transcript.get("agent") or cli_agent or "main"
+    mismatches: list[str] = []
+
+    for i, step in enumerate(transcript["steps"], 1):
+        agent = step.get("agent", default_agent)
+        tool = step["tool"]
+        detail, output = "", ""
+        if agent != "main" and tool not in agent_tools(project, agent):
+            outcome, detail = "denied", f"{agent} has no {tool} tool"
+        elif tool == "Bash":
+            outcome, detail = run_hooks(project, step["command"])
+            if outcome == "allowed":
+                p = subprocess.run(
+                    ["bash", "-c", step["command"]],
+                    cwd=project,
+                    text=True,
+                    capture_output=True,
+                    timeout=300,
+                )
+                output = (p.stdout + p.stderr)[-2000:]
+                if p.returncode != 0:
+                    outcome = "failed"
+        elif tool in ("Write", "Edit"):
+            target = project / step["path"]
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(step["content"])
+            outcome = "allowed"
+        else:
+            outcome = "allowed"  # Read/Grep/Glob: no side effects to emulate
+        expected = step.get("expect", "allowed")
+        if outcome != expected:
+            mismatches.append(
+                f"step {i} ({agent} {tool}): expected {expected}, got {outcome}"
+                f"{': ' + detail if detail else ''}{': ' + output if output else ''}"
+            )
+        if log_path:
+            with open(log_path, "a") as fh:
+                fh.write(
+                    json.dumps(
+                        {
+                            "step": i,
+                            "agent": agent,
+                            "tool": tool,
+                            "outcome": outcome,
+                            "detail": detail,
+                        }
+                    )
+                    + "\n"
+                )
+
+    result = {
+        "type": "result",
+        "subtype": "success" if not mismatches else "error",
+        "is_error": bool(mismatches),
+        "num_turns": len(transcript["steps"]),
+        "total_cost_usd": 0.0,
+        "result": "\n".join(mismatches) or transcript.get("result", "transcript replayed"),
+    }
+    print(json.dumps(result) if "json" in args else result["result"])
+    return 1 if mismatches else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

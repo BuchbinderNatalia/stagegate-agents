@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: Apache-2.0
+title = "Validate ISBN-13 numbers"
+max_turns = 40
+brief = """
+`Catalog.add` must reject invalid ISBNs. Add `InvalidIsbnError`, a subclass of ValueError,
+in bookshelf/catalog.py and export it from the `bookshelf` package. An ISBN is valid when,
+after removing hyphens and spaces, it is exactly 13 digits and its last digit is the ISBN-13
+check digit (weights 1,3,1,3,... on the first 12 digits; check = (10 - sum % 10) % 10).
+Invalid ISBNs raise InvalidIsbnError and the book is not added. Books keep the ISBN exactly
+as given. Existing behaviour (duplicates, empty ISBN raising ValueError) must still work.
+Add tests.
+"""
+acceptance = [
+  "AC-1: add() accepts valid ISBN-13s, including ones written with hyphens or spaces",
+  "AC-2: wrong length, non-digits or a wrong check digit raise InvalidIsbnError",
+  "AC-3: InvalidIsbnError subclasses ValueError and is exported from bookshelf",
+  "AC-4: a rejected book is not added",
+  "AC-5: the existing duplicate and empty-ISBN behaviour is unchanged",
+]

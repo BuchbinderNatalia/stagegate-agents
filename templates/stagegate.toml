@@ -1,0 +1,99 @@
+# SPDX-License-Identifier: Apache-2.0
+# stagegate.toml — configuration for the stagegate-agents factory.
+#
+# Read by stagegate's hooks and installer (Python 3.11+, standard library only).
+# Every key is optional: anything you delete falls back to the default shown.
+# After changing [stack], [models] or [sandbox], re-run the installer
+# (scripts/install.sh) to re-render agents and .claude/settings.json.
+# [guards] and [review] are read live by the hooks: no reinstall needed.
+
+[project]
+name = ""                    # shown in agent prompts; defaults to the repo folder name
+description = ""             # one line: what the project does
+default_branch = "main"
+
+[stack]
+language = "python"
+profile = "python"           # agent guidance: stacks/<profile>.md (python, python-fastapi, react-ts)
+backend_dir = "."
+frontend_dir = ""            # empty = no frontend (frontend agents are not installed)
+tests_dir = "tests"
+test_command = "pytest -q"
+lint_command = "ruff check ."
+run_prefix = ""              # e.g. "docker compose run --rm app" to run commands in a container
+
+[git]
+branch_prefix = "feat/"
+commit_style = "per-step"    # per-step | per-file
+protect_default_branch = true  # block commits on / pushes to the default branch (use PRs)
+
+[review]
+require_green_ci = true      # merge gate: block `gh pr merge` unless all CI checks are green
+
+[models]
+fast = "haiku"               # researchers, story writer (aliases track the current version;
+default = "sonnet"           # a full model ID pins one)
+
+[sandbox]
+# Claude Code's OS-level sandbox for Bash commands. On by default: agents can't
+# read credential stores and can only reach the domains below.
+enabled = true
+fail_if_unavailable = false  # true = refuse to run unsandboxed (evals force true)
+allowed_domains = [
+  "github.com",
+  "api.github.com",
+  "codeload.github.com",
+  "objects.githubusercontent.com",
+  "pypi.org",
+  "files.pythonhosted.org",
+]
+# Added only when [infra] enabled = true: Terraform providers and kubeconform schemas.
+infra_domains = ["registry.terraform.io", "releases.hashicorp.com", "raw.githubusercontent.com"]
+deny_read = [
+  "~/.aws",
+  "~/.ssh",
+  "~/.kube",
+  "~/.config/gh",
+  "~/.config/gcloud",
+  "~/.azure",
+  "~/.docker/config.json",
+  "~/.netrc",
+  "~/.npmrc",
+  "~/.pypirc",
+]
+# Run outside the sandbox, still with permission prompts: these need your
+# git/GitHub credentials. `gh pr merge` also stays behind the merge gate.
+# Adding "docker *" or "kubectl *" here runs them UNSANDBOXED — see docs/EXTENDING.md.
+excluded_commands = ["git fetch *", "git pull *", "git push *", "gh pr *"]
+
+[guards]
+local_hosts = ["localhost", "127.0.0.1", "0.0.0.0", "::1", "host.docker.internal"]
+forbidden_hosts = []         # never load-test these, e.g. ["app.example.com"]
+load_tools = ["k6", "artillery", "locust", "vegeta", "wrk", "autocannon", "jmeter", "hey", "ab", "oha", "bombardier", "siege"]
+blocked_files = ["*.tfstate", "*.tfstate.backup", "*.tfvars", "*.pem", "*.key", "*.p12", ".env", ".env.*", "secrets.yaml", "secrets.json", ".venv/*", "id_rsa*", "*.leak-denylist"]
+allowed_files = [".env.example", "*.tfvars.example"]
+block_latest_tag = true      # block `image: ...:latest` in commits
+forbidden_patterns = []      # regexes blocked in added lines, e.g. ['from legacy_sdk import']
+
+[infra]
+# Optional infra pack (install with --with-infra): Terraform, Kubernetes, GitOps agents.
+enabled = false
+cloud = "aws"
+region = "us-east-1"
+cluster = ""                 # e.g. "my-cluster"
+registry = ""                # e.g. "<AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/my-app"
+iac_dir = "terraform"
+k8s_dir = "k8s"
+gitops = "argocd"            # argocd | none
+secrets = "vault"            # vault | external-secrets | none
+tf_state_bucket = ""         # e.g. "<TF_STATE_BUCKET>"
+tf_lock_table = ""
+app_name = ""                # Kubernetes deployment / ArgoCD app name (default: project name)
+namespace = ""               # app namespace (default: project name)
+health_path = "/health"
+app_port = "8000"
+environment = "production"   # GitHub environment gating deploys: add required reviewers to it
+# Repository variables holding IAM role ARNs CI assumes via OIDC (no stored keys):
+plan_role_variable = "AWS_PLAN_ROLE_ARN"      # read-only role, used by the plan job
+deploy_role_variable = "AWS_DEPLOY_ROLE_ARN"  # trust policy: only the deploy environment
+learning_notes = false       # mentor mode: infra agents explain why, risks and what seniors check

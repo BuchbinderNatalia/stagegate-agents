@@ -1,0 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
+# Resolve `source` paths relative to the script that sources them.
+source-path=SCRIPTDIR
+external-sources=true

@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: Apache-2.0
+title = "Remove a book from the catalogue"
+max_turns = 40
+brief = """
+Add `Catalog.remove(isbn: str) -> Book` to bookshelf/catalog.py. It removes the book with
+that ISBN and returns it. If no book has that ISBN it raises a new exception
+`BookNotFoundError`, a subclass of `KeyError`, defined in bookshelf/catalog.py and exported
+from the `bookshelf` package. After removal the ISBN can be added again. Add tests.
+"""
+acceptance = [
+  "AC-1: remove(isbn) deletes the book and returns it",
+  "AC-2: removing an unknown ISBN raises BookNotFoundError, a KeyError subclass",
+  "AC-3: BookNotFoundError is importable from the bookshelf package",
+  "AC-4: a removed ISBN can be added again",
+]

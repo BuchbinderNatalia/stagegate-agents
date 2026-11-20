@@ -1,0 +1,80 @@
+# SPDX-License-Identifier: Apache-2.0
+# CI: lint, license headers, leak check and the full test suite (unit, integration,
+# E2E with fake claude/gh). Live tests with the real Claude never run here.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read # checkout only
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint and license headers
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.14"
+      - name: Install dev tools (exact versions, hash-checked)
+        run: python -m pip install --require-hashes -r requirements-dev.lock
+      - run: ruff check .
+      - run: ruff format --check .
+      - name: shellcheck
+        run: git ls-files -z '*.sh' | xargs -0 shellcheck
+      - name: SPDX license headers
+        run: python scripts/check_spdx.py
+
+  leak-check:
+    name: Leak check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Dedicated environment: the private denylist secret is readable by this job only.
+    environment: leak-check
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Leak check (generic rules + private denylist secret)
+        env:
+          # Newline-separated private identifiers; not available on fork PRs,
+          # where only the generic rules run.
+          LEAK_DENYLIST: ${{ secrets.LEAK_DENYLIST }}
+        run: python3 scripts/leak_check.py
+
+  test:
+    name: Tests (Python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.14"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install dev tools (exact versions, hash-checked)
+        run: python -m pip install --require-hashes -r requirements-dev.lock
+      - name: Git identity for test repositories
+        run: |
+          git config --global user.name "stagegate-ci"
+          git config --global user.email "stagegate-ci@users.noreply.github.com"
+          git config --global init.defaultBranch main
+      - name: Unit, integration and E2E tests
+        run: python -m pytest -p no:cacheprovider -rs

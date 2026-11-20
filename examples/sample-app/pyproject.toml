@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: Apache-2.0
+[project]
+name = "bookshelf"
+version = "0.1.0"
+description = "Sample app for stagegate-agents: a tiny in-memory book catalogue."
+requires-python = ">=3.11"
+dependencies = []
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100

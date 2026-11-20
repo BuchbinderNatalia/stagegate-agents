@@ -1,0 +1,41 @@
+---
+name: build-with-tests
+description: How to implement a {{ project.name }} change with tests written alongside the code, one small unit at a time, inside the approved brief. Used by the builder agents; use it directly for small changes that don't need the full feature-factory chain.
+---
+<!-- SPDX-License-Identifier: Apache-2.0 — stagegate-agents -->
+
+# build-with-tests
+
+Follow every step in order. Don't start a step until the previous one is done.
+
+## 1. Read before touching anything
+- [ ] `CLAUDE.md` and `.claude/stagegate/stack.md`
+- [ ] The approved brief, if there is one: stay inside its scope
+- [ ] 2–3 existing similar features; note the patterns to copy
+- [ ] If a documentation tool is available (e.g. Context7), current docs for each library you'll use
+
+## 2. Branch
+`git branch --show-current` must not be `{{ project.default_branch }}`. Otherwise
+`git switch -c {{ git.branch_prefix }}<slug>`.
+
+## 3. Smallest coherent steps
+For each unit (a type/schema, a function, an entry point{{#if stack.frontend_dir}}, a component, an API client call{{/if}}):
+1. Write the code.
+2. Write its test immediately: success, failure, and empty/not-found paths. Mock every external service.
+3. Run `{{ cmd.test }}` and make it pass.
+4. Commit ({{#if git.per_file}}one file per commit{{else}}the unit and its test together{{/if}}).
+Only then start the next unit.
+
+## 4. Final verification
+- [ ] `{{ cmd.test }}`: all green, no skipped or weakened tests
+- [ ] `{{ cmd.lint }}`: clean
+- [ ] `git diff --name-only {{ project.default_branch }}...HEAD`: only intended files
+- [ ] Push the feature branch: `git push -u origin HEAD` (never `{{ project.default_branch }}`)
+
+## 5. Summary
+Files changed · patterns reused · new settings/env keys · test results · suggested CLAUDE.md additions.
+
+## Rules
+- No refactoring outside the scope; no new dependencies without the human's approval.
+- If a test can't pass without breaking a CLAUDE.md rule, stop and report the conflict.
+- Never commit secrets, state files or keys (the commit guard blocks them anyway).

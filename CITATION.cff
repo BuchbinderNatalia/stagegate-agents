@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: Apache-2.0
+cff-version: 1.2.0
+message: "If you use stagegate-agents, please cite it as below."
+title: "stagegate-agents: a staged, human-gated delivery pipeline for Claude Code"
+abstract: >-
+  Nineteen Claude Code agents that take a feature from idea to merged pull request behind three
+  human approval gates, with guard hooks, an OS sandbox and CI gates that enforce the rules in
+  code. Extracted from a production platform on AWS EKS.
+authors:
+  - family-names: Buchbinder
+    given-names: Natalia
+    website: "https://www.linkedin.com/in/natalia-buchbinder"
+type: software
+version: 0.1.0
+license: Apache-2.0
+repository-code: "https://github.com/BuchbinderNatalia/stagegate-agents"
+url: "https://github.com/BuchbinderNatalia/stagegate-agents"
+keywords:
+  - ai-agents
+  - claude-code
+  - devops
+  - automation
+  - multi-agent

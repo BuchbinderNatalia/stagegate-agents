@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: Apache-2.0
+title = "Find books published in a year range"
+max_turns = 40
+brief = """
+Add `Catalog.by_year(start: int, end: int) -> list[Book]` to bookshelf/catalog.py. It returns
+the books whose year is between start and end, both inclusive, sorted by year, then title
+(case-insensitive), then ISBN. If start is greater than end it raises ValueError. Add tests.
+"""
+acceptance = [
+  "AC-1: by_year returns books with start <= year <= end (inclusive bounds)",
+  "AC-2: results are sorted by year, then title case-insensitively, then ISBN",
+  "AC-3: start > end raises ValueError",
+  "AC-4: a range with no books returns an empty list",
+]
