@@ -45,6 +45,11 @@ see OWASP for the full definitions. "Partial" means stagegate reduces the risk b
 - **Hooks are guardrails, not a security boundary.** They can't see merges done in the GitHub web
   UI or REST API, commands assembled at runtime (variables, aliases, scripts that call `gh`
   internally) or `env -S`. Use branch protection where your plan allows it.
+- **One known false positive (fails safe).** Quotes nested inside a quoted command substitution,
+  e.g. `git commit -m "$(msg "title" "…gh pr merge 1…")"`, can make quoted text look like a
+  command, so the guard blocks it. Simple quoted mentions, single quotes and heredocs are handled.
+  Put such messages in a file (`git commit -F msg.txt`) or a heredoc. Fixing this properly needs a
+  full shell parser, which would add the project's first runtime dependency.
 - **The sandbox covers Bash, not every tool**, and commands in `excluded_commands` run outside it
   (by default `git fetch/pull/push` and `gh pr *`, still behind permission prompts and guards).
 - **pr-reviewer's "read-only git"** is an instruction: Claude Code can't restrict Bash to specific

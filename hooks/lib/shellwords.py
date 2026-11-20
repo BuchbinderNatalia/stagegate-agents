@@ -18,6 +18,12 @@ Not handled (documented limits; guards are guardrails, not a sandbox):
 variable/alias/function expansion, `env -S`, scripts that call a tool
 internally, and commands assembled at runtime. Unparseable input (e.g. an
 unclosed quote) falls back to a naive split, which errs towards matching.
+
+Known false positive (fails safe, i.e. blocks): quotes NESTED inside a quoted
+command substitution, as in  git commit -m "$(msg "title" "use `gh pr merge 1`")".
+shlex can't nest quotes, so the inner strings look unquoted and their text looks
+like commands. Write such messages to a file (git commit -F file) or a heredoc
+(heredoc bodies are ignored). Pinned by test_known_false_positive_nested_quotes.
 """
 
 from __future__ import annotations
