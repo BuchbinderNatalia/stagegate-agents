@@ -57,6 +57,9 @@ see OWASP for the full definitions. "Partial" means stagegate reduces the risk b
 - **Gates rely on a human reading.** stagegate makes the decision explicit; it can't make it careful.
 - **Guard decisions aren't logged yet**, so block rates can't be measured (see the case study).
 
+For an organisation-wide setup (managed settings, identity-bound approvals, audit logs, cost
+control, staged rollout), see [AT_SCALE.md](AT_SCALE.md).
+
 ## Adding a runtime policy layer
 
 For policy enforcement beyond delivery (prompt inspection, per-tool allow/deny/ask policies,
