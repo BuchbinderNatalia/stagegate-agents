@@ -27,9 +27,15 @@ First public release, extracted from the delivery pipeline of
 - One-command installer (pinned release, optional checksum), uninstaller and doctor.
 - Opt-in pytest network guard template.
 - 260+ offline tests with a fake `claude` and fake `gh`, a local-only live suite, and a
-  success-rate eval with hidden acceptance tests.
+  success-rate eval with hidden acceptance tests. Live result: 15/15 runs passed (5 tasks x 3),
+  clean reviewer approval on 12/15. The other 3 flagged a real flaw in one task's brief
+  ([eval results](docs/EVAL_RESULTS.md)).
 - CI: tests on Python 3.11 and 3.14, gitleaks, trufflehog, CodeQL, OpenSSF Scorecard,
   dependency review, actionlint, zizmor, release with build provenance.
+
+### Fixed before release
+- The guard hooks wrote `__pycache__/` into users' repositories, and the installed hook code
+  failed stricter ruff configurations. Found by the first live eval run.
 
 ### Fixed (compared with the original StarPulse pipeline)
 - The commit guard exited 1, which Claude Code treats as non-blocking, so it never blocked.
