@@ -13,6 +13,7 @@ Pair it with branch protection where your GitHub plan allows it.
 
 from __future__ import annotations
 
+import importlib
 import json
 import subprocess
 import sys
@@ -20,9 +21,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-import config  # noqa: E402
-import hookio  # noqa: E402
-import shellwords  # noqa: E402
+# Sibling modules, loaded after the path is set (no import-order suppressions needed,
+# so the installed code passes users' own linters).
+config = importlib.import_module("config")
+hookio = importlib.import_module("hookio")
+shellwords = importlib.import_module("shellwords")
 
 GUARD = "merge gate"
 GREEN = {"pass", "skipping"}
@@ -74,7 +77,7 @@ def failing_checks(target: str, repo: str, cwd: str | None) -> tuple[list[str], 
     cmd += ["--json", "name,bucket"]
     try:
         # gh exits non-zero while checks fail or are pending: judge the JSON, not the code.
-        proc = subprocess.run(cmd, capture_output=True, text=True, cwd=cwd, timeout=45)
+        proc = subprocess.run(cmd, capture_output=True, text=True, cwd=cwd, timeout=45, check=False)
     except (OSError, subprocess.SubprocessError) as exc:
         return [f"could not run gh: {exc}"], ""
     raw = (proc.stdout or proc.stderr).strip()
