@@ -28,11 +28,12 @@ Every ❌ needs `path:line` and blocks the merge.
 - [ ] No secrets in ConfigMaps or values files{{#if infra.vault}} (Vault only){{/if}}
 - [ ] Correct namespaces (app: `{{ infra.namespace }}`); never `default`
 - [ ] Non-root security context; PDB when replicas > 1
-- [ ] `helm lint` / `kubectl apply --dry-run=client` output included
+- [ ] `helm lint` / `kubeconform` output included
 {{#if infra.argocd}}- [ ] Nothing managed by both ArgoCD and a pipeline Helm/kubectl step
 {{/if}}
 ## CI/CD
-- [ ] OIDC role (`{{ infra.deploy_role_secret }}`), no long-lived cloud keys
+- [ ] OIDC roles: read-only `{{ infra.plan_role_variable }}` for plans, `{{ infra.deploy_role_variable }}`
+      only inside the `{{ infra.environment }}` environment; no long-lived cloud keys
 - [ ] Every action pinned to a commit SHA
 - [ ] Least-privilege `permissions:`
 - [ ] Order: tests → Terraform → platform → build → scan → deploy

@@ -65,6 +65,12 @@ DEFAULTS: dict[str, Any] = {
             "~/.npmrc",
             "~/.pypirc",
         ],
+        # Added only when the infra pack is enabled: Terraform providers and kubeconform schemas.
+        "infra_domains": [
+            "registry.terraform.io",
+            "releases.hashicorp.com",
+            "raw.githubusercontent.com",
+        ],
         # Run outside the sandbox (still with permission prompts): they need your
         # git/GitHub credentials. `gh pr merge` stays behind the merge gate.
         "excluded_commands": ["git fetch *", "git pull *", "git push *", "gh pr *"],
@@ -87,7 +93,10 @@ DEFAULTS: dict[str, Any] = {
         "app_port": "8000",
         "environment": "production",  # GitHub environment that gates deploys (required reviewers)
         # Name of the GitHub Actions secret holding the IAM role ARN CI assumes via OIDC.
-        "deploy_role_secret": "AWS_DEPLOY_ROLE_ARN",
+        # Repository VARIABLES (an ARN isn't a secret; the OIDC trust policy is the control).
+        # Plan role: read-only. Deploy role: trusted only for the deploy environment.
+        "plan_role_variable": "AWS_PLAN_ROLE_ARN",
+        "deploy_role_variable": "AWS_DEPLOY_ROLE_ARN",
         # Mentor mode: infra agents end with "Learning notes" (why, risks, what seniors check).
         "learning_notes": False,
     },

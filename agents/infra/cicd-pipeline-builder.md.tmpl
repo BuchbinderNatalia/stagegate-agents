@@ -25,8 +25,10 @@ approved brief describes. You never touch Terraform, manifests or application co
 ## Pipeline rules (never weaken these)
 - **Stage order:** tests → infrastructure (Terraform) → platform → build → scan → deploy. A red
   test stops everything after it.
-- **Cloud credentials via OIDC** (`permissions: id-token: write` + an assumed role from the secret
-  `{{ infra.deploy_role_secret }}`). Never long-lived access keys in secrets.
+- **Cloud credentials via OIDC** (`permissions: id-token: write` + an assumed role). Two roles,
+  ARNs in repository variables: `{{ infra.plan_role_variable }}` (read-only, for plans) and
+  `{{ infra.deploy_role_variable }}` (trusted only inside the `{{ infra.environment }}`
+  environment). Never long-lived access keys.
 - **Least-privilege `permissions:`** at workflow level (`contents: read`), widened per job only where needed.
 - **Pin every action to a full commit SHA** with the version in a comment. Never `@master`/`@main`.
 - **Image scan** (e.g. Trivy) fails the build on CRITICAL/HIGH before anything is deployed.

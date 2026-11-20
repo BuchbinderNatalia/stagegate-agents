@@ -40,10 +40,13 @@ variables → module resources → root wiring → outputs → versions (only fo
 ## Validate after every file
 ```bash
 terraform -chdir={{ infra.iac_dir }} fmt -check -recursive
+terraform -chdir={{ infra.iac_dir }} init -backend=false -input=false
 terraform -chdir={{ infra.iac_dir }} validate
 ```
-Run `terraform plan` only if credentials are available read-only; report destroys explicitly.
-Never `apply`: merge the PR and let the pipeline apply it.
+Don't run `terraform plan` locally: it needs cloud credentials, which the sandbox hides. After
+merge, the pipeline's plan job publishes the plan; the human approves the apply after reading it,
+and apply refuses to run if the plan changed. In your summary, list every resource you expect to
+be **destroyed or replaced**, so the reviewer knows what to look for. Never `apply`.
 
 ## Commit
 {{#if git.per_file}}One file per commit{{else}}One logical change per commit{{/if}}: `git commit -m "infra: <what>"`, then `git push -u origin HEAD`.

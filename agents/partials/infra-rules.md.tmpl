@@ -2,10 +2,12 @@
 ## Infra safety rules (non-negotiable)
 - **Branch:** `git branch --show-current` must not be `{{ project.default_branch }}`. Work on
   `{{ git.branch_prefix }}infra-<slug>`. Push the feature branch only.
-- **No applies, no live cluster.** Allowed: `terraform fmt`, `terraform validate`, `terraform plan`
-  (read-only), `helm lint`, `helm template`, `kubectl apply --dry-run=client`, `kubectl diff`.
-  Never `terraform apply/destroy`, `helm install/upgrade`, `kubectl apply/delete/edit/patch/exec`,
-  or anything else that changes real infrastructure. The pipeline applies changes after merge.
+- **Offline checks only: no credentials, no applies, no live cluster.** Allowed:
+  `terraform fmt`, `terraform init -backend=false` + `terraform validate`, `helm lint`,
+  `helm template`, and schema checks such as `kubeconform -strict`. The sandbox hides cloud and
+  cluster credentials, so `terraform plan` and `kubectl diff` don't run here: the pipeline's plan
+  job runs the plan and publishes it for the human who approves the deploy. Never
+  `terraform apply/destroy`, `helm install/upgrade`, `kubectl apply/delete/edit/patch/exec`.
 - **No secrets in git:** no credentials, tokens, account IDs, private hostnames or personal data in
   any file. Use variables, data sources and placeholders (`<AWS_ACCOUNT_ID>`, `${{ secrets.X }}`).
 {{#if infra.vault}}- **Secrets come from Vault**, never from Kubernetes Secrets, ConfigMaps or Helm values.

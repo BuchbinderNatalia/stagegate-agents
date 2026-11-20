@@ -14,8 +14,11 @@ First public release, extracted from the delivery pipeline of
 - 10 core agents and 2 skills (`/feature-factory` with three human approval gates,
   `/build-with-tests`), rendered from templates with values from `stagegate.toml`.
 - Optional infra pack: 9 agents (Terraform, Kubernetes, CI/CD, ArgoCD, monitoring), 3 skills
-  and a hardened 3-stage deploy workflow (OIDC, SHA-pinned actions, scan gate, GitOps wait on
-  the exact revision).
+  and a hardened 3-stage deploy workflow: the plan is published to the run summary *before*
+  the approval and apply refuses to run if it changed since; a read-only OIDC role for plans and
+  a deploy role trusted only inside the production environment (no stored secrets at all);
+  SHA-pinned actions; image-scan gate; GitOps wait on the exact revision. Infra agents run
+  offline checks only, inside the sandbox.
 - Guard hooks sharing one shell-command parser: commit guard (secrets, `:latest`, forbidden
   patterns, commits/pushes to the default branch, files added in the same command), merge gate
   (green CI only), load-test guard (local hosts only). Fail closed; block with exit 2.

@@ -37,7 +37,7 @@ You are the monitoring configuration agent for {{ project.name }}. You change ob
 
 ## Validate
 `helm lint` / `helm template` for values; `promtool check rules` for rule files if available;
-`kubectl apply --dry-run=client` for raw resources.
+`kubeconform -strict` for raw resources.
 
 ## Commit
 `git commit -m "monitoring: <what>"`; push the feature branch only.

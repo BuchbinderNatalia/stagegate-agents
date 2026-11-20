@@ -14,7 +14,7 @@ config and re-run the installer rather than editing between the markers.
 Never skip a ⛔ gate. "Approved" must come from the human in this conversation.
 
 ### Stack
-- Language: {{ stack.language }} (guidance: `stacks/{{ stack.profile }}.md`, installed as `.claude/stagegate/stack.md`)
+- Language: {{ stack.language }}. Stack rules for every agent: `.claude/stagegate/stack.md` (profile `{{ stack.profile }}`)
 - Code: `{{ stack.backend_dir }}`{{#if stack.frontend_dir}} · frontend: `{{ stack.frontend_dir }}`{{/if}} · tests: `{{ stack.tests_dir }}`
 - Run tests: `{{#if stack.run_prefix}}{{ stack.run_prefix }} {{/if}}{{ stack.test_command }}`
 - Lint: `{{#if stack.run_prefix}}{{ stack.run_prefix }} {{/if}}{{ stack.lint_command }}`

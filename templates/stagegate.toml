@@ -47,6 +47,8 @@ allowed_domains = [
   "pypi.org",
   "files.pythonhosted.org",
 ]
+# Added only when [infra] enabled = true: Terraform providers and kubeconform schemas.
+infra_domains = ["registry.terraform.io", "releases.hashicorp.com", "raw.githubusercontent.com"]
 deny_read = [
   "~/.aws",
   "~/.ssh",
@@ -91,5 +93,7 @@ namespace = ""               # app namespace (default: project name)
 health_path = "/health"
 app_port = "8000"
 environment = "production"   # GitHub environment gating deploys: add required reviewers to it
-deploy_role_secret = "AWS_DEPLOY_ROLE_ARN"  # Actions secret with the IAM role ARN CI assumes via OIDC
+# Repository variables holding IAM role ARNs CI assumes via OIDC (no stored keys):
+plan_role_variable = "AWS_PLAN_ROLE_ARN"      # read-only role, used by the plan job
+deploy_role_variable = "AWS_DEPLOY_ROLE_ARN"  # trust policy: only the deploy environment
 learning_notes = false       # mentor mode: infra agents explain why, risks and what seniors check

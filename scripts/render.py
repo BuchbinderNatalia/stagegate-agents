@@ -248,9 +248,10 @@ def merge_settings(existing: dict[str, Any], cfg: dict[str, Any]) -> dict[str, A
         fs = sandbox.setdefault("filesystem", {})
         fs["denyRead"] = sorted(set(fs.get("denyRead", [])) | set(sb["deny_read"]))
         net = sandbox.setdefault("network", {})
-        net["allowedDomains"] = sorted(
-            set(net.get("allowedDomains", [])) | set(sb["allowed_domains"])
-        )
+        domains = list(sb["allowed_domains"])
+        if cfg["infra"]["enabled"]:
+            domains += sb["infra_domains"]
+        net["allowedDomains"] = sorted(set(net.get("allowedDomains", [])) | set(domains))
         excl = sandbox.get("excludedCommands", [])
         sandbox["excludedCommands"] = excl + [c for c in sb["excluded_commands"] if c not in excl]
     return settings

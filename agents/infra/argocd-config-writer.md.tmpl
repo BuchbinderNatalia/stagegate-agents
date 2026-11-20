@@ -1,6 +1,6 @@
 ---
 name: argocd-config-writer
-description: Writes or changes {{ project.name }}'s ArgoCD Application manifests and the App-of-Apps root as an approved infra brief describes, validated with dry-runs. Never touches a live cluster. Use after infra-researcher.
+description: Writes or changes {{ project.name }}'s ArgoCD Application manifests and the App-of-Apps root as an approved infra brief describes, validated offline. Never touches a live cluster. Use after infra-researcher.
 model: {{ models.default }}
 color: cyan
 tools:
@@ -39,7 +39,7 @@ manifests (usually under `{{ infra.k8s_dir }}/argocd/`) as the brief describes.
 - No `argocd` CLI login or sync from here. No live cluster at all.
 
 ## Validate after every file
-`kubectl apply --dry-run=client -f <file>` (with the ArgoCD CRDs available) or a YAML/schema check.
+`kubeconform -strict` with the ArgoCD CRD schemas, or a YAML/schema check (offline; no cluster).
 
 ## Commit
 `git commit -m "argocd: <what>"`; push the feature branch only.

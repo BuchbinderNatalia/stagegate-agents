@@ -48,7 +48,8 @@ Show validator results and every changed file. Ask exactly:
 - yes → push, `gh pr create`, run **pr-reviewer**, print its verdict.
 
 ### STEP 8 — Pre-merge reminders for the human
-- Read the `terraform plan` in CI before merging; look for unexpected **destroys**.
+- After merge, read the plan in the pipeline's plan job before approving the apply; look for
+  unexpected **destroys** or replacements (the apply refuses to run if the plan changed).
 - Create any new secrets the summaries list (GitHub Actions secrets{{#if infra.vault}}, Vault paths{{/if}}) before merging.
 - Merging deploys: the pipeline applies changes, nobody applies by hand.
 - The merge gate blocks `gh pr merge` until every check is green.

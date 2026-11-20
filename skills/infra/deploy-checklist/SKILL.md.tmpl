@@ -24,14 +24,15 @@ Keep real account IDs, domains and contact emails **out of this file**: it lives
 ## Pre-deploy
 - [ ] All CI checks green on the PR; the merge gate allowed the merge
 - [ ] Image tagged with the git SHA, never `:latest`
-- [ ] Terraform plan reviewed: no unexpected destroys
-- [ ] Manifest changes reviewed (`kubectl diff` output in the PR, if any)
+- [ ] Terraform plan read in the plan job's run summary **before** approving the apply: no
+      unexpected destroys or replacements (apply refuses to run if the plan changed since)
+- [ ] Manifest changes reviewed in the PR diff
 - [ ] New secrets created where the app reads them{{#if infra.vault}} (Vault){{/if}} **before** the deploy
 - [ ] New settings have safe defaults, so the app starts without them
 - [ ] A reviewer approved the `{{ infra.environment }}` environment deployment in GitHub Actions
 
 ## During deploy (watch it, don't walk away)
-- [ ] Terraform stage: only expected changes
+- [ ] Terraform: plan published, apply approved, apply matched the reviewed plan
 - [ ] Platform stage: every release upgrades cleanly
 - [ ] Build: image scan passes (no CRITICAL/HIGH)
 - [ ] Deploy: {{#if infra.argocd}}ArgoCD reports the app Synced and Healthy{{else}}rollout completes{{/if}}

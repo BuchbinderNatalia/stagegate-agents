@@ -74,7 +74,7 @@ def test_infra_agents_valid(cfg_name: str, tmp_path: Path) -> None:
         body = text.split("---\n", 2)[2]
         assert body.count("SPDX-License-Identifier") == 1, "partials must not repeat the header"
         if meta["name"] != "infra-researcher" and not meta["name"].endswith("validator"):
-            assert "No applies, no live cluster" in body
+            assert "no credentials, no applies, no live cluster" in body
         notes = "## Learning notes" in body
         assert notes == CONFIGS[cfg_name]["infra"].get("learning_notes", False)
 
@@ -86,13 +86,21 @@ def test_workflow_is_valid_and_hardened(cfg_name: str, tmp_path: Path) -> None:
     assert wf["permissions"] == {"contents": "read"}
     assert wf["concurrency"]["cancel-in-progress"] is False
     jobs = wf["jobs"]
-    expected = ["tests", "infrastructure", "platform", "deploy"]
+    expected = ["tests", "plan", "infrastructure", "platform", "deploy"]
     if cfg_name == "argocd":
         expected += ["release", "verify"]
     assert list(jobs) == expected
-    assert jobs["infrastructure"]["needs"] == "tests"
+    assert jobs["plan"]["needs"] == "tests" and jobs["infrastructure"]["needs"] == "plan"
+    # Approval happens after the plan is published; apply refuses a changed plan.
+    plan_steps = str(jobs["plan"]["steps"])
+    apply_steps = str(jobs["infrastructure"]["steps"])
+    assert "GITHUB_STEP_SUMMARY" in plan_steps and "fingerprint" in plan_steps
+    assert "REVIEWED" in apply_steps and "terraform apply -input=false tfplan" in apply_steps
+    assert "upload-artifact" not in text  # plan files can contain secrets
     for name, job in jobs.items():
-        if name != "tests":
+        # The plan runs BEFORE any approval so the approver can read it.
+        assert ("environment" in job) == (name not in ("tests", "plan")), name
+        if "environment" in job:
             assert job["environment"] == "production"
     # Only the release job may write to the repo, and only it keeps git credentials.
     for name, job in jobs.items():
@@ -105,7 +113,11 @@ def test_workflow_is_valid_and_hardened(cfg_name: str, tmp_path: Path) -> None:
         for step in job["steps"]:
             if "uses" in step:
                 assert PINNED.match(step["uses"]), f"unpinned action: {step['uses']}"
-    assert "secrets.AWS_DEPLOY_ROLE_ARN" in text
+    # Plan job: read-only role. Everything that changes infrastructure: deploy role, in the env.
+    assert "vars.AWS_PLAN_ROLE_ARN" in str(jobs["plan"]["steps"])
+    for name in ("infrastructure", "platform", "deploy"):
+        assert "vars.AWS_DEPLOY_ROLE_ARN" in str(jobs[name]["steps"]), name
+    assert "secrets." not in text  # no secrets at all: OIDC + variables
     assert "aws-access-key-id" not in text and "AWS_SECRET_ACCESS_KEY" not in text
     assert 'exit-code: "1"' in text and "CRITICAL,HIGH" in text
     assert "shop-api" in text  # app name defaulted from the project folder

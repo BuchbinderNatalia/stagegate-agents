@@ -194,6 +194,14 @@ def test_settings_merge_keeps_user_settings_and_is_idempotent() -> None:
     assert user["hooks"]["PreToolUse"][0]["hooks"] == [{"type": "command", "command": "mine.sh"}]
 
 
+def test_infra_domains_only_with_infra_pack() -> None:
+    core = render.merge_settings({}, config.DEFAULTS)["sandbox"]["network"]["allowedDomains"]
+    infra_cfg = config._merge(config.DEFAULTS, {"infra": {"enabled": True}})
+    infra = render.merge_settings({}, infra_cfg)["sandbox"]["network"]["allowedDomains"]
+    assert "registry.terraform.io" not in core
+    assert {"registry.terraform.io", "releases.hashicorp.com"} <= set(infra)
+
+
 def test_settings_sandbox_opt_out() -> None:
     cfg = config._merge(config.DEFAULTS, {"sandbox": {"enabled": False}})
     s = render.merge_settings({}, cfg)
