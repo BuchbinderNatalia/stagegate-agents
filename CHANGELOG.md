@@ -5,7 +5,7 @@ All notable changes are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
-## [0.1.0] - unreleased
+## [0.1.0] - 2026-11-20
 
 First public release, extracted from the delivery pipeline of
 [StarPulse](https://starpulse.dev) ([case study](docs/CASE_STUDY.md)).
