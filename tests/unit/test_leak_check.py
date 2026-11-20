@@ -85,3 +85,15 @@ def test_denylist_file_itself_is_not_scanned(tmp_path: Path) -> None:
 def test_repository_is_clean() -> None:
     """The real repo must pass (private denylist applies when configured locally/CI)."""
     assert leak_check.main(["--root", str(ROOT)]) == 0
+
+
+def test_project_name_only_allowed_where_its_story_is_told() -> None:
+    name = "Star" + "Pulse"
+    line = f"Built on {name}."
+    assert list(leak_check.scan_text(line, [], "docs/CASE_STUDY.md")) == []
+    assert list(leak_check.scan_text(line, [], "docs/release-notes/v0.1.0.md")) == []
+    assert list(leak_check.scan_text(line, [], "README.md")) == []
+    for rel in ("agents/core/x.md.tmpl", "hooks/lib/config.py", "docs/ARCHITECTURE.md"):
+        assert len(list(leak_check.scan_text(line, [], rel))) == 1, rel
+    # Private identifiers stay forbidden even in the case study.
+    assert list(leak_check.scan_text("bucket my-secret", ["my-secret"], "docs/CASE_STUDY.md"))
