@@ -14,8 +14,12 @@ class InvalidIsbnError(ValueError):
     """Raised when an ISBN is not a valid ISBN-13."""
 
 
+def normalize_isbn(isbn: str) -> str:
+    return isbn.replace("-", "").replace(" ", "")
+
+
 def is_valid_isbn13(isbn: str) -> bool:
-    digits = isbn.replace("-", "").replace(" ", "")
+    digits = normalize_isbn(isbn)
     if len(digits) != 13 or not digits.isdigit():
         return False
     total = sum(int(d) * (1 if i % 2 == 0 else 3) for i, d in enumerate(digits[:12]))
@@ -39,12 +43,13 @@ class Catalog:
             raise ValueError("isbn must not be empty")
         if not is_valid_isbn13(book.isbn):
             raise InvalidIsbnError(book.isbn)
-        if book.isbn in self._books:
+        key = normalize_isbn(book.isbn)
+        if key in self._books:
             raise DuplicateBookError(book.isbn)
-        self._books[book.isbn] = book
+        self._books[key] = book
 
     def get(self, isbn: str) -> Book | None:
-        return self._books.get(isbn)
+        return self._books.get(normalize_isbn(isbn))
 
     def search(self, text: str) -> list[Book]:
         needle = text.casefold()
