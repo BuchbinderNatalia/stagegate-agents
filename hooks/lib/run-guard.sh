@@ -29,7 +29,8 @@ run_guard() {
       "Install it (macOS: brew install python@3.12) or set STAGEGATE_PYTHON." >&2
     exit 2
   fi
-  # -E: ignore PYTHON* env vars; -s: no user site-packages. The lib dir stays on
-  # sys.path so the guard can import its sibling modules.
-  exec "$py" -E -s "$lib/$module"
+  # -E: ignore PYTHON* env vars; -s: no user site-packages; -B: don't write
+  # __pycache__ into the user's repository. The lib dir stays on sys.path so the
+  # guard can import its sibling modules.
+  exec "$py" -E -s -B "$lib/$module"
 }

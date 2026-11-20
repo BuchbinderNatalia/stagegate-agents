@@ -67,7 +67,7 @@ deny_read = [
 excluded_commands = ["git fetch *", "git pull *", "git push *", "gh pr *"]
 
 [guards]
-local_hosts = ["localhost", "127.0.0.1", "0.0.0.0", "::1", "host.docker.internal"]
+local_hosts = ["localhost", "127.0.0.1", "::1", "host.docker.internal"]  # + private/loopback IPs and dotless names
 forbidden_hosts = []         # never load-test these, e.g. ["app.example.com"]
 load_tools = ["k6", "artillery", "locust", "vegeta", "wrk", "autocannon", "jmeter", "hey", "ab", "oha", "bombardier", "siege"]
 blocked_files = ["*.tfstate", "*.tfstate.backup", "*.tfvars", "*.pem", "*.key", "*.p12", ".env", ".env.*", "secrets.yaml", "secrets.json", ".venv/*", "id_rsa*", "*.leak-denylist"]
