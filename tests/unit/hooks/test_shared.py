@@ -99,3 +99,22 @@ def test_fails_closed_without_python(hook: str, tmp_path: Path) -> None:
 def test_all_hooks_executable() -> None:
     for hook in ("merge-gate.sh", "commit-guard.sh", "load-test-guard.sh"):
         assert os.access(HOOKS / hook, os.X_OK), hook
+
+
+def test_known_false_positive_nested_quotes() -> None:
+    """Pins a documented limitation (shellwords docstring, GOVERNANCE known gaps).
+
+    shlex can't nest quotes inside "$(...)", so quoted text there can look like a command.
+    It errs towards BLOCKING. If the parser learns nesting, update this test on purpose.
+    """
+    nested = 'git commit -m "$(msg "t" "x \\`gh pr merge 29\\` y")"'
+    progs = [a[:3] for a in shellwords.commands(nested)]
+    assert ["gh", "pr", "merge"] in progs  # current (fail-safe) behaviour
+    # The documented alternatives are parsed correctly:
+    for safe in (
+        "git commit -F msg.txt",
+        "git commit -F - <<'EOF'\nuse gh pr merge 29\nEOF",
+        'git commit -m "use \\`gh pr merge 29\\` carefully"',
+        "git commit -m 'use `gh pr merge 29` carefully'",
+    ):
+        assert ["gh", "pr", "merge"] not in [a[:3] for a in shellwords.commands(safe)], safe
