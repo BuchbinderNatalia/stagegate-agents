@@ -6,9 +6,11 @@ brief = """
 in bookshelf/catalog.py and export it from the `bookshelf` package. An ISBN is valid when,
 after removing hyphens and spaces, it is exactly 13 digits and its last digit is the ISBN-13
 check digit (weights 1,3,1,3,... on the first 12 digits; check = (10 - sum % 10) % 10).
-Invalid ISBNs raise InvalidIsbnError and the book is not added. Books keep the ISBN exactly
-as given. Existing behaviour (duplicates, empty ISBN raising ValueError) must still work.
-Add tests.
+Invalid ISBNs raise InvalidIsbnError and the book is not added. A book keeps its `isbn` exactly
+as given, but the catalogue identifies books by the normalized ISBN (hyphens and spaces
+removed): adding the same ISBN in another format raises DuplicateBookError, and `get()` finds a
+book by any format of its ISBN. Existing behaviour (empty ISBN raising ValueError) must still
+work. Add tests.
 """
 acceptance = [
   "AC-1: add() accepts valid ISBN-13s, including ones written with hyphens or spaces",
@@ -16,4 +18,9 @@ acceptance = [
   "AC-3: InvalidIsbnError subclasses ValueError and is exported from bookshelf",
   "AC-4: a rejected book is not added",
   "AC-5: the existing duplicate and empty-ISBN behaviour is unchanged",
+  "AC-6: the same ISBN in another format (hyphens, spaces) is a duplicate",
+  "AC-7: get() finds a book by any format of its ISBN; Book.isbn keeps the given format",
 ]
+# v2 (2026-11-20): v1 said "keep the ISBN exactly as given" without normalizing the catalogue
+# key, so the same book could be added twice in different formats. The reviewer agent flagged it
+# on 3/3 live runs (docs/EVAL_RESULTS.md).

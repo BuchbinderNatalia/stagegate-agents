@@ -41,8 +41,13 @@ given". That means `9780441013593` and `978-0-441-01359-3`, the same book, are s
 different keys and both get added, silently bypassing `DuplicateBookError`. The reference
 solution has the same flaw. The reviewer found a design defect in the human-written spec
 consistently, which is the reviewer's job. It counts as a pass under the 0-Critical rule, and is
-reported here rather than hidden behind it. The task brief will be corrected in a later version,
-and its results reported separately.
+reported here rather than hidden behind it.
+
+**Corrected (task v2):** the brief now says the catalogue identifies books by the normalized ISBN,
+so the same ISBN in another format is a duplicate and `get()` finds a book by any format. Two new
+hidden tests cover exactly this. The v1 reference solution fails them, so the grading itself now
+catches what the reviewer caught. The v1 results above stay as they were measured; v2 results
+will be added below when they've been run.
 
 ### The run before these: a stagegate bug
 
