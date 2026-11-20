@@ -210,7 +210,7 @@ def test_doctor(repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     status = {name: s for name, s, _ in doctor.checks(repo)}
     assert status["installed files"] == status["hooks registered"] == doctor.OK
     assert status["claude CLI"] == status["gh CLI"] == doctor.WARN
-    os.chmod(repo / render.HOOK_DIR / "merge-gate.sh", 0o644)
+    os.chmod(repo / render.HOOK_DIR / "merge-gate.sh", 0o600)  # drop the exec bit
     assert {n: s for n, s, _ in doctor.checks(repo)}["guard hooks"] == doctor.ERR
 
 

@@ -189,7 +189,7 @@ def test_settings_merge_keeps_user_settings_and_is_idempotent() -> None:
     assert once["permissions"] == user["permissions"]
     cmds = [h["command"] for h in once["hooks"]["PreToolUse"][0]["hooks"]]
     assert cmds[0] == "mine.sh" and len(cmds) == 4
-    assert "internal.example.com" in once["sandbox"]["network"]["allowedDomains"]
+    assert set(once["sandbox"]["network"]["allowedDomains"]) >= {"internal.example.com"}
     assert once["sandbox"]["excludedCommands"][0] == "docker *"
     assert user["hooks"]["PreToolUse"][0]["hooks"] == [{"type": "command", "command": "mine.sh"}]
 
