@@ -21,7 +21,7 @@ only aggregates are published: no code, account IDs or internal hostnames.
 | PRs by type | 25 fix · 14 feat · 12 docs · 5 chore (by branch prefix) |
 | Backend tests | **2 → 123** test functions |
 | Coverage floor (CI-enforced ratchet) | **55% → 65% → 74% → 82%** |
-| Test workflow on pull requests | 75 of 75 runs green before merge |
+| Test workflow runs (PRs and deploy stage 0) | 75 of 75 green |
 | Production deploys since the full gate set (14 Nov) | **18 of 21 succeeded (86%)** |
 
 ## The reviewer agents caught real problems
@@ -35,8 +35,7 @@ Counting only what those descriptions state explicitly:
   - #15: `pr-reviewer` returned *REQUEST CHANGES* with two Critical findings in the Vault
     automation; both were fixed in a follow-up commit, and an Important one stopped a
     `vault kv put` from silently wiping unrelated secrets.
-  - #33: `pr-reviewer` found runbooks that would have applied raw manifests with an unrendered
-    account-ID placeholder.
+  - #33: `pr-reviewer` found runbooks that still applied the raw manifests directly.
   - #52: `implementation-validator` found the new MCP endpoint answered with a redirect instead
     of serving requests.
 - **At least 12 Important findings** fixed across #15, #28, #39, #41 and #45, plus more in #31,
