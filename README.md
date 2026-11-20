@@ -176,7 +176,8 @@ Code can't restrict Bash per agent. See [GOVERNANCE](docs/GOVERNANCE.md#known-ga
 ## Documentation
 
 [Architecture](docs/ARCHITECTURE.md) · [Extending](docs/EXTENDING.md) ·
-[Governance & OWASP mapping](docs/GOVERNANCE.md) · [Case study](docs/CASE_STUDY.md) ·
+[Governance & OWASP mapping](docs/GOVERNANCE.md) · [Running at scale](docs/AT_SCALE.md) ·
+[Case study](docs/CASE_STUDY.md) ·
 [Eval results](docs/EVAL_RESULTS.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) ·
 [Changelog](CHANGELOG.md)
 
