@@ -130,8 +130,9 @@ file, [`stagegate.toml`](templates/stagegate.toml).
   PR → review → merge gate. A fake `claude` and fake `gh` make them free and deterministic.
 - **Success-rate evals** ([`evals/`](evals/run.py)): 5 tasks with hidden acceptance tests the agents
   never see; a run passes only with clean git discipline, no regressions, the hidden tests green and
-  0 Critical from an independent validator and reviewer. Live results: see
-  [docs/EVAL_RESULTS.md](docs/EVAL_RESULTS.md).
+  0 Critical from an independent validator and reviewer. **Live: 15/15 runs passed**, with a clean
+  reviewer approval on 12/15. On the other 3 the reviewer caught a real design flaw in one
+  task's own brief ([results](docs/EVAL_RESULTS.md)).
 - **Supply chain:** zero runtime dependencies; dev tools installed from a hash-locked file; every
   GitHub Action pinned to a commit SHA; CodeQL, OpenSSF Scorecard, dependency review, gitleaks and
   trufflehog, actionlint and zizmor (also on the workflows it generates); signed build provenance
