@@ -37,3 +37,20 @@ def test_duplicates_still_rejected() -> None:
     c.add(Book("9780441013593", "Dune", "Frank Herbert", 1965))
     with pytest.raises(DuplicateBookError):
         c.add(Book("9780441013593", "Dune", "Frank Herbert", 1965))
+
+
+def test_same_isbn_in_another_format_is_a_duplicate() -> None:
+    c = Catalog()
+    c.add(Book(VALID, "Dune", "Frank Herbert", 1965))
+    for other in ("978-0-441-01359-3", "978 0441013593"):
+        with pytest.raises(DuplicateBookError):
+            c.add(Book(other, "Dune", "Frank Herbert", 1965))
+    assert len(c.all()) == 1
+
+
+def test_get_by_any_format_keeps_given_isbn() -> None:
+    c = Catalog()
+    c.add(Book("978-0-441-01359-3", "Dune", "Frank Herbert", 1965))
+    for query in (VALID, "978-0-441-01359-3", "978 0441013593"):
+        book = c.get(query)
+        assert book is not None and book.isbn == "978-0-441-01359-3"
