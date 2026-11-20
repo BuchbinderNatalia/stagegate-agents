@@ -11,10 +11,10 @@ relies on, so tests exercise the real installed files:
   - Each step's tool must be in the acting agent's `tools:` frontmatter in
     .claude/agents/<agent>.md, otherwise the call is denied.
 
-Usage:   claude -p <prompt> [--output-format json] [any other flags ignored]
+Usage:   claude -p <prompt> [--agent NAME] [--output-format json] [other flags ignored]
 Env:     FAKE_CLAUDE_TRANSCRIPT  path to a JSON transcript (required)
          FAKE_CLAUDE_LOG         append one JSON line per step (optional)
-Transcript: {"agent": "<default agent>", "steps": [
+Transcript: {"agent": "<default agent>", "result": "<final answer text>", "steps": [
   {"tool": "Bash", "command": "...", "expect": "allowed|blocked|denied", "agent": "..."},
   {"tool": "Write", "path": "rel/path", "content": "...", "expect": "..."}]}
 A step whose outcome differs from "expect" makes the run an error (is_error).
@@ -95,7 +95,9 @@ def main() -> int:
     project = Path.cwd()
     transcript = json.loads(Path(os.environ["FAKE_CLAUDE_TRANSCRIPT"]).read_text())
     log_path = os.environ.get("FAKE_CLAUDE_LOG")
-    default_agent = transcript.get("agent", "main")
+    # `--agent NAME` runs the whole session as that agent (its tools apply), like the real CLI.
+    cli_agent = args[args.index("--agent") + 1] if "--agent" in args[:-1] else None
+    default_agent = transcript.get("agent") or cli_agent or "main"
     mismatches: list[str] = []
 
     for i, step in enumerate(transcript["steps"], 1):
@@ -151,7 +153,7 @@ def main() -> int:
         "is_error": bool(mismatches),
         "num_turns": len(transcript["steps"]),
         "total_cost_usd": 0.0,
-        "result": "\n".join(mismatches) or "transcript replayed",
+        "result": "\n".join(mismatches) or transcript.get("result", "transcript replayed"),
     }
     print(json.dumps(result) if "json" in args else result["result"])
     return 1 if mismatches else 0

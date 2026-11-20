@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: Apache-2.0
+title = "Paginate search results"
+max_turns = 40
+brief = """
+Extend `Catalog.search(text: str, limit: int | None = None, offset: int = 0) -> list[Book]`
+in bookshelf/catalog.py. Matching and order stay as today; then it skips `offset` results and
+returns at most `limit` (all remaining when limit is None). A negative limit or offset raises
+ValueError. Existing calls `search(text)` must behave exactly as before. Add tests.
+"""
+acceptance = [
+  "AC-1: search(text) without new arguments behaves exactly as before",
+  "AC-2: offset skips that many results in the existing order",
+  "AC-3: limit caps the number of results; None means no cap",
+  "AC-4: negative limit or offset raises ValueError",
+  "AC-5: an offset past the end returns an empty list",
+]
