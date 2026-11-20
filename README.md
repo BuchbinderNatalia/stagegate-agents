@@ -6,6 +6,23 @@
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 ![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)
 
+**stagegate-agents lets AI agents build software the way a careful team does.** They research,
+plan, write code and tests, and review each other's work, while a person approves the important
+steps and automatic checks stop unsafe actions, like publishing a password or merging broken code.
+
+| Built and proven in production | |
+|---|---|
+| Changes shipped with it on the [StarPulse](https://starpulse.dev) platform | **56** |
+| Live AI test runs passed (hidden acceptance tests, independent reviewers) | **15 / 15** |
+| Automated tests guarding the project itself | **280+** |
+| Secrets in the code history (checked by 3 independent scanners) | **0** |
+| OpenSSF security score (November 2026) | **7.1 / 10** |
+
+*Built by Natalia Buchbinder · [LinkedIn](https://www.linkedin.com/in/natalia-buchbinder) ·
+[Case study](docs/CASE_STUDY.md) · [Eval results](docs/EVAL_RESULTS.md)*
+
+### For engineers
+
 **A staged, human-gated delivery pipeline for [Claude Code](https://claude.com/claude-code), whose
 rules are enforced by code, not just by prompts.** Nineteen specialised agents take a feature from
 idea to merged pull request: research, user story, technical brief, test plan, implementation,
@@ -15,9 +32,6 @@ no merging a red PR, no load tests against production. It was extracted from
 **[StarPulse](https://starpulse.dev)**, a production app on AWS EKS that one developer built and ran
 with these agents ([case study](docs/CASE_STUDY.md)), and installs into any Python repository with
 one command.
-
-> **Demo:** a short screen recording of `/feature-factory` on the sample app goes here
-> (`docs/assets/demo.gif`).
 
 ## How it works
 
