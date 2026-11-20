@@ -17,6 +17,7 @@ wants a remote load test, they run it themselves.
 
 from __future__ import annotations
 
+import importlib
 import ipaddress
 import re
 import sys
@@ -24,9 +25,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-import config  # noqa: E402
-import hookio  # noqa: E402
-import shellwords  # noqa: E402
+# Sibling modules, loaded after the path is set (no import-order suppressions needed,
+# so the installed code passes users' own linters).
+config = importlib.import_module("config")
+hookio = importlib.import_module("hookio")
+shellwords = importlib.import_module("shellwords")
 
 GUARD = "load-test guard"
 CONTAINER_TOOLS = {"docker", "podman", "docker-compose", "nerdctl"}
@@ -112,8 +115,10 @@ def main() -> None:
                 "load tests run against local hosts only. Remote target(s): "
                 + ", ".join(sorted(bad))
                 + ".",
-                "Point the test at a local stack (e.g. BASE_URL=http://localhost:8000 or a "
-                "docker-compose service name). A remote load test needs a human to run it.",
+                (
+                    "Point the test at a local stack (e.g. BASE_URL=http://localhost:8000 or a "
+                    "docker-compose service name). A remote load test needs a human to run it."
+                ),
             ],
         )
     hookio.allow()

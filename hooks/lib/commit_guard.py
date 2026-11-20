@@ -22,6 +22,7 @@ repo's pre-commit/gitleaks hooks as the second layer.
 from __future__ import annotations
 
 import fnmatch
+import importlib
 import re
 import subprocess
 import sys
@@ -29,9 +30,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-import config  # noqa: E402
-import hookio  # noqa: E402
-import shellwords  # noqa: E402
+# Sibling modules, loaded after the path is set (no import-order suppressions needed,
+# so the installed code passes users' own linters).
+config = importlib.import_module("config")
+hookio = importlib.import_module("hookio")
+shellwords = importlib.import_module("shellwords")
 
 GUARD = "commit guard"
 LATEST = re.compile(r"image:\s*[\"']?\S+:latest\b", re.IGNORECASE)
@@ -124,8 +127,8 @@ def push_targets_default(args: list[str], current: str, default: str) -> bool:
     refspecs = positional[1:]  # positional[0] is the remote
     if not refspecs:
         return current == default  # pushes the current branch
-    for spec in refspecs:
-        spec = spec.lstrip("+")
+    for raw in refspecs:
+        spec = raw.lstrip("+")  # "+" forces the push; the destination is what matters
         dest = spec.split(":", 1)[1] if ":" in spec else spec
         if dest == "HEAD":
             dest = current
@@ -211,7 +214,8 @@ def main() -> None:
                     problems.append(f"forbidden pattern /{rx.pattern}/: {line.strip()[:120]}")
 
     if problems:
-        hookio.block(GUARD, [*dict.fromkeys(problems).keys()][:20] + ["Fix these, then try again."])
+        unique = list(dict.fromkeys(problems))[:20]
+        hookio.block(GUARD, [*unique, "Fix these, then try again."])
     hookio.allow()
 
 
