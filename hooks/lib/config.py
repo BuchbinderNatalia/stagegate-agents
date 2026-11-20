@@ -103,7 +103,7 @@ DEFAULTS: dict[str, Any] = {
     "guards": {
         # Load tests may only target these hosts. Dotless names (docker-compose
         # services such as "backend") and private/loopback IPs are always local.
-        "local_hosts": ["localhost", "127.0.0.1", "0.0.0.0", "::1", "host.docker.internal"],  # noqa: S104 — target hosts, not a bind
+        "local_hosts": ["localhost", "127.0.0.1", "::1", "host.docker.internal"],
         # Hosts that must never be load-tested, even when written without a scheme.
         "forbidden_hosts": [],
         "load_tools": [

@@ -176,6 +176,54 @@ def test_installed_hook_works(repo: Path) -> None:
     assert result.returncode == 2 and "sensitive file staged: .env" in result.stderr
 
 
+def test_installed_hooks_leave_no_cache_files(repo: Path) -> None:
+    install.main([str(repo)])
+    payload = json.dumps({"tool_input": {"command": "git commit -m x"}, "cwd": str(repo)})
+    env = dict(os.environ, CLAUDE_PROJECT_DIR=str(repo), STAGEGATE_PYTHON=sys.executable)
+    env.pop("PYTHONDONTWRITEBYTECODE", None)  # -B must work on its own (-E ignores env vars)
+    for hook in render.HOOKS:
+        subprocess.run(
+            ["bash", str(repo / render.HOOK_DIR / hook)],
+            input=payload,
+            text=True,
+            capture_output=True,
+            env=env,
+            cwd=repo,
+            timeout=60,
+        )
+    assert not list((repo / ".claude").rglob("__pycache__"))
+    status = subprocess.run(
+        ["git", "status", "--porcelain", "--untracked-files=all"],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+    ).stdout
+    assert "__pycache__" not in status
+
+
+def test_installed_hook_code_passes_strict_lint(repo: Path) -> None:
+    """Users' own linters must not fail on stagegate's files (no config of ours applies)."""
+    install.main([str(repo)])
+    ruff = Path(sys.executable).parent / "ruff"
+    p = subprocess.run(
+        [
+            str(ruff),
+            "check",
+            "--isolated",
+            "--line-length",
+            "100",
+            "--select",
+            "E,F,W,I,B,UP,S,RUF,ISC,PLW,PLE",
+            "--ignore",
+            "S603,S607,S404",
+            str(repo / render.HOOK_DIR),
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert p.returncode == 0, p.stdout
+
+
 # --------------------------------------------------------------------------- uninstall
 def test_uninstall(repo: Path) -> None:
     (repo / "CLAUDE.md").write_text("# House rules\n")
